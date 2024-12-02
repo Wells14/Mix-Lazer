@@ -36,7 +36,10 @@ import {
   Shapes,
   ScissorsIcon,
   LayoutTemplateIcon,
-  PaperclipIcon
+  PaperclipIcon,
+  ChevronDown as ChevronDownIcon,
+  Package as PackageIcon,
+  File as FileIcon
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";

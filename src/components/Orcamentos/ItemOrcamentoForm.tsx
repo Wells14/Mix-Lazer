@@ -1,339 +1,254 @@
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { useConfiguracaoOrcamentoStore } from "@/stores/configuracaoOrcamentoStore";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ItemOrcamento, CustoMaterial, Acabamento, CustoOperacional } from "@/types/orcamento";
-import { CalculoOrcamentoService } from "@/services/calculoOrcamento";
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Select } from '../ui/select';
+import { Textarea } from '../ui/textarea';
+import { useOrcamentosStore } from '@/stores/orcamentosStore';
+import { ItemOrcamento, MargemLucro } from '@/types/orcamento';
+import { useCallback } from 'react';
 
 const formSchema = z.object({
-  tipo: z.enum(["produto", "servico"]),
-  nome: z.string().min(1, "Nome é obrigatório"),
-  descricao: z.string().optional(),
-  quantidade: z.number().min(1, "Quantidade deve ser maior que zero"),
-  unidade: z.string().min(1, "Unidade é obrigatória"),
-  largura: z.number().optional(),
-  altura: z.number().optional(),
+  tipo: z.enum(['produto', 'servico']),
+  nome: z.string().min(1, 'Nome é obrigatório'),
+  descricao: z.string().min(1, 'Descrição é obrigatória'),
+  quantidade: z.number().min(1, 'Quantidade deve ser maior que 0'),
+  unidade: z.string().min(1, 'Unidade é obrigatória'),
+  largura: z.number().min(0),
+  altura: z.number().min(0),
+  custoUnitario: z.number().min(0),
+  precoUnitario: z.number().min(0),
+  precoTotal: z.number().min(0),
   margemLucro: z.object({
-    porcentagem: z.number().min(0, "Margem deve ser maior ou igual a zero"),
-    tipo: z.enum(["sobre_custo", "sobre_venda"])
+    tipo: z.enum(['sobre_custo', 'sobre_venda']),
+    porcentagem: z.number().min(0).max(100)
   })
 });
 
+type ItemOrcamentoFormData = z.infer<typeof formSchema>;
+
 interface ItemOrcamentoFormProps {
-  onClose: () => void;
-  onSave: (item: ItemOrcamento) => void;
-  itemInicial?: Partial<ItemOrcamento>;
+  orcamentoId: string;
+  onSubmit: (item: ItemOrcamento) => void;
+  onClose?: () => void;
+  initialData?: ItemOrcamento;
 }
 
-export function ItemOrcamentoForm({ onClose, onSave, itemInicial }: ItemOrcamentoFormProps) {
-  const [materiais, setMateriais] = useState<CustoMaterial[]>(itemInicial?.materiais || []);
-  const [acabamentos, setAcabamentos] = useState<Acabamento[]>(itemInicial?.acabamentos || []);
-  const [custosOperacionais, setCustosOperacionais] = useState<CustoOperacional[]>(itemInicial?.custosOperacionais || []);
-  
-  const { 
-    materiaisCadastrados,
-    acabamentosPadrao,
-    custosOperacionaisPadrao,
-    margensPadrao,
-    impostos
-  } = useConfiguracaoOrcamentoStore();
+export function ItemOrcamentoForm({ 
+  orcamentoId, 
+  onSubmit,
+  onClose,
+  initialData 
+}: ItemOrcamentoFormProps) {
+  const { adicionarItemOrcamento } = useOrcamentosStore();
 
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
+  const form = useForm<ItemOrcamentoFormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      tipo: itemInicial?.tipo || "produto",
-      nome: itemInicial?.nome || "",
-      descricao: itemInicial?.descricao || "",
-      quantidade: itemInicial?.quantidade || 1,
-      unidade: itemInicial?.unidade || "un",
-      largura: itemInicial?.largura || 0,
-      altura: itemInicial?.altura || 0,
-      margemLucro: itemInicial?.margemLucro || {
-        porcentagem: margensPadrao["produto"] || 30,
-        tipo: "sobre_custo" as const
+      tipo: initialData?.tipo || 'produto',
+      nome: initialData?.nome || '',
+      descricao: initialData?.descricao || '',
+      quantidade: initialData?.quantidade || 1,
+      unidade: initialData?.unidade || 'un',
+      largura: initialData?.largura || 0,
+      altura: initialData?.altura || 0,
+      custoUnitario: initialData?.custoUnitario || 0,
+      precoUnitario: initialData?.precoUnitario || 0,
+      precoTotal: initialData?.precoTotal || 0,
+      margemLucro: {
+        tipo: initialData?.margemLucro?.tipo || 'sobre_custo',
+        porcentagem: initialData?.margemLucro?.porcentagem || 30
       }
     }
   });
 
-  const tipo = watch("tipo");
+  const {
+    register,
+    handleSubmit,
+    formState: { errors }
+  } = form;
 
-  const calcularPrecos = (dados: z.infer<typeof formSchema>) => {
-    const item: ItemOrcamento = {
-      id: itemInicial?.id || Math.random().toString(36).substr(2, 9),
-      ...dados,
-      materiais,
-      acabamentos,
-      custosOperacionais,
-      impostos,
-      custoUnitario: 0,
-      precoUnitario: 0,
-      precoTotal: 0
-    };
+  const onSubmitForm = useCallback(async (data: ItemOrcamentoFormData) => {
+    try {
+      const item: Omit<ItemOrcamento, 'id'> = {
+        tipo: data.tipo,
+        nome: data.nome,
+        descricao: data.descricao,
+        quantidade: Number(data.quantidade) || 0,
+        unidade: data.unidade,
+        largura: Number(data.largura) || 0,
+        altura: Number(data.altura) || 0,
+        custoUnitario: Number(data.custoUnitario) || 0,
+        precoUnitario: Number(data.precoUnitario) || 0,
+        precoTotal: Number(data.precoTotal) || 0,
+        custoOperacional: [],
+        custoMaterial: [],
+        acabamentos: [],
+        margemLucro: {
+          porcentagem: Number(data.margemLucro.porcentagem) || 0,
+          valor: 0,
+          tipo: data.margemLucro.tipo
+        }
+      };
 
-    return CalculoOrcamentoService.calcularItem(item);
-  };
-
-  const onSubmit = (dados: z.infer<typeof formSchema>) => {
-    const itemCalculado = calcularPrecos(dados);
-    onSave(itemCalculado);
-    onClose();
-  };
-
-  const adicionarMaterial = (material: CustoMaterial) => {
-    setMateriais([...materiais, material]);
-  };
-
-  const removerMaterial = (index: number) => {
-    setMateriais(materiais.filter((_, i) => i !== index));
-  };
-
-  const adicionarAcabamento = (acabamento: Acabamento) => {
-    setAcabamentos([...acabamentos, acabamento]);
-  };
-
-  const removerAcabamento = (index: number) => {
-    setAcabamentos(acabamentos.filter((_, i) => i !== index));
-  };
-
-  const adicionarCustoOperacional = (custo: CustoOperacional) => {
-    setCustosOperacionais([...custosOperacionais, custo]);
-  };
-
-  const removerCustoOperacional = (index: number) => {
-    setCustosOperacionais(custosOperacionais.filter((_, i) => i !== index));
-  };
+      await onSubmit(item as ItemOrcamento);
+      if (onClose) onClose();
+    } catch (error) {
+      console.error('Erro ao salvar item:', error);
+    }
+  }, [onSubmit, onClose]);
 
   return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{itemInicial ? "Editar Item" : "Novo Item"}</DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Dados básicos */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Tipo</Label>
-              <Select
-                {...register("tipo")}
-                onValueChange={(valor) => {
-                  setValue("tipo", valor as "produto" | "servico");
-                  setValue("margemLucro.porcentagem", margensPadrao[valor] || 30);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="produto">Produto</SelectItem>
-                  <SelectItem value="servico">Serviço</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Nome</Label>
-              <Input {...register("nome")} error={errors.nome?.message} />
-            </div>
-            <div>
-              <Label>Quantidade</Label>
-              <Input
-                type="number"
-                min="1"
-                step="1"
-                {...register("quantidade", { valueAsNumber: true })}
-                error={errors.quantidade?.message}
-              />
-            </div>
-            <div>
-              <Label>Unidade</Label>
-              <Input {...register("unidade")} error={errors.unidade?.message} />
-            </div>
-          </div>
-
-          {/* Dimensões (apenas para produtos) */}
-          {tipo === "produto" && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Largura (cm)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  {...register("largura", { valueAsNumber: true })}
-                />
-              </div>
-              <div>
-                <Label>Altura (cm)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  {...register("altura", { valueAsNumber: true })}
-                />
-              </div>
-            </div>
+    <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label htmlFor="tipo">Tipo</label>
+          <Select {...register('tipo')} defaultValue="produto">
+            <option value="produto">Produto</option>
+            <option value="servico">Serviço</option>
+          </Select>
+          {errors.tipo && (
+            <span className="text-sm text-red-500">{errors.tipo.message}</span>
           )}
+        </div>
 
-          {/* Materiais */}
-          <div className="space-y-2">
-            <Label>Materiais</Label>
-            <div className="space-y-2">
-              {materiais.map((material, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <span className="flex-1">{material.nome}</span>
-                  <span>{material.quantidade} {material.unidade}</span>
-                  <span>R$ {material.precoUnitario.toFixed(2)}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removerMaterial(index)}
-                  >
-                    Remover
-                  </Button>
-                </div>
-              ))}
-            </div>
-            <Select onValueChange={(id) => {
-              const material = materiaisCadastrados.find(m => m.nome === id);
-              if (material) adicionarMaterial(material);
-            }}>
-              <SelectTrigger>
-                <SelectValue placeholder="Adicionar material" />
-              </SelectTrigger>
-              <SelectContent>
-                {materiaisCadastrados.map((material) => (
-                  <SelectItem key={material.nome} value={material.nome}>
-                    {material.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="space-y-2">
+          <label htmlFor="nome">Nome</label>
+          <Input {...register('nome')} placeholder="Nome do item" />
+          {errors.nome && (
+            <span className="text-sm text-red-500">{errors.nome.message}</span>
+          )}
+        </div>
+      </div>
 
-          {/* Acabamentos */}
-          <div className="space-y-2">
-            <Label>Acabamentos</Label>
-            <div className="space-y-2">
-              {acabamentos.map((acabamento, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <span className="flex-1">{acabamento.nome}</span>
-                  <span>{acabamento.tempoEstimado}h</span>
-                  <span>R$ {acabamento.custo.toFixed(2)}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removerAcabamento(index)}
-                  >
-                    Remover
-                  </Button>
-                </div>
-              ))}
-            </div>
-            <Select onValueChange={(id) => {
-              const acabamento = acabamentosPadrao.find(a => a.nome === id);
-              if (acabamento) adicionarAcabamento(acabamento);
-            }}>
-              <SelectTrigger>
-                <SelectValue placeholder="Adicionar acabamento" />
-              </SelectTrigger>
-              <SelectContent>
-                {acabamentosPadrao.map((acabamento) => (
-                  <SelectItem key={acabamento.nome} value={acabamento.nome}>
-                    {acabamento.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      <div className="space-y-2">
+        <label htmlFor="descricao">Descrição</label>
+        <Textarea {...register('descricao')} placeholder="Descrição detalhada" />
+        {errors.descricao && (
+          <span className="text-sm text-red-500">{errors.descricao.message}</span>
+        )}
+      </div>
 
-          {/* Custos Operacionais */}
-          <div className="space-y-2">
-            <Label>Custos Operacionais</Label>
-            <div className="space-y-2">
-              {custosOperacionais.map((custo, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <span className="flex-1">{custo.nome}</span>
-                  <span>{custo.tempoEstimado}h</span>
-                  <span>R$ {custo.valorHora.toFixed(2)}/h</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removerCustoOperacional(index)}
-                  >
-                    Remover
-                  </Button>
-                </div>
-              ))}
-            </div>
-            <Select onValueChange={(id) => {
-              const custo = custosOperacionaisPadrao.find(c => c.nome === id);
-              if (custo) adicionarCustoOperacional(custo);
-            }}>
-              <SelectTrigger>
-                <SelectValue placeholder="Adicionar custo operacional" />
-              </SelectTrigger>
-              <SelectContent>
-                {custosOperacionaisPadrao.map((custo) => (
-                  <SelectItem key={custo.nome} value={custo.nome}>
-                    {custo.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label htmlFor="quantidade">Quantidade</label>
+          <Input
+            {...register('quantidade', { valueAsNumber: true })}
+            type="number"
+            min="1"
+            step="1"
+          />
+          {errors.quantidade && (
+            <span className="text-sm text-red-500">{errors.quantidade.message}</span>
+          )}
+        </div>
 
-          {/* Margem de Lucro */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Margem de Lucro (%)</Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.1"
-                {...register("margemLucro.porcentagem", { valueAsNumber: true })}
-                error={errors.margemLucro?.porcentagem?.message}
-              />
-            </div>
-            <div>
-              <Label>Tipo de Margem</Label>
-              <Select
-                {...register("margemLucro.tipo")}
-                onValueChange={(valor) => {
-                  setValue("margemLucro.tipo", valor as "sobre_custo" | "sobre_venda");
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sobre_custo">Sobre Custo</SelectItem>
-                  <SelectItem value="sobre_venda">Sobre Venda</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+        <div className="space-y-2">
+          <label htmlFor="unidade">Unidade</label>
+          <Select {...register('unidade')} defaultValue="un">
+            <option value="un">Unidade</option>
+            <option value="m">Metro</option>
+            <option value="m2">Metro Quadrado</option>
+            <option value="kg">Quilograma</option>
+            <option value="h">Hora</option>
+          </Select>
+          {errors.unidade && (
+            <span className="text-sm text-red-500">{errors.unidade.message}</span>
+          )}
+        </div>
+      </div>
 
-          {/* Botões */}
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button type="submit">
-              {itemInicial ? "Salvar" : "Adicionar"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label htmlFor="largura">Largura</label>
+          <Input
+            {...register('largura', { valueAsNumber: true })}
+            type="number"
+            min="0"
+            step="0.01"
+          />
+          {errors.largura && (
+            <span className="text-sm text-red-500">{errors.largura.message}</span>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="altura">Altura</label>
+          <Input
+            {...register('altura', { valueAsNumber: true })}
+            type="number"
+            min="0"
+            step="0.01"
+          />
+          {errors.altura && (
+            <span className="text-sm text-red-500">{errors.altura.message}</span>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label htmlFor="custoUnitario">Custo Unitário</label>
+          <Input
+            {...register('custoUnitario', { valueAsNumber: true })}
+            type="number"
+            min="0"
+            step="0.01"
+          />
+          {errors.custoUnitario && (
+            <span className="text-sm text-red-500">{errors.custoUnitario.message}</span>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="precoUnitario">Preço Unitário</label>
+          <Input
+            {...register('precoUnitario', { valueAsNumber: true })}
+            type="number"
+            min="0"
+            step="0.01"
+          />
+          {errors.precoUnitario && (
+            <span className="text-sm text-red-500">{errors.precoUnitario.message}</span>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label htmlFor="precoTotal">Preço Total</label>
+          <Input
+            {...register('precoTotal', { valueAsNumber: true })}
+            type="number"
+            min="0"
+            step="0.01"
+          />
+          {errors.precoTotal && (
+            <span className="text-sm text-red-500">{errors.precoTotal.message}</span>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="margemLucro.tipo">Tipo de Margem</label>
+          <Select {...register('margemLucro.tipo')} defaultValue="sobre_custo">
+            <option value="sobre_custo">Sobre Custo</option>
+            <option value="sobre_venda">Sobre Venda</option>
+          </Select>
+          {errors.margemLucro?.tipo && (
+            <span className="text-sm text-red-500">{errors.margemLucro.tipo.message}</span>
+          )}
+        </div>
+      </div>
+
+      <div className="flex justify-end space-x-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancelar
+        </Button>
+        <Button type="submit">
+          Adicionar Item
+        </Button>
+      </div>
+    </form>
   );
 }

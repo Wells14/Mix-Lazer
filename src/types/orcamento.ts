@@ -2,13 +2,17 @@ export interface CustoOperacional {
   nome: string;
   valorHora: number;
   tempoEstimado: number;
+  custoUnitario: number;
+  custoTotal: number;
 }
 
 export interface CustoMaterial {
   nome: string;
+  quantidade: number;
   unidade: string;
   precoUnitario: number;
-  quantidade: number;
+  custoUnitario: number;
+  custoTotal: number;
   desperdicio: number;
 }
 
@@ -16,71 +20,68 @@ export interface Acabamento {
   nome: string;
   custo: number;
   tempoEstimado: number;
+  custoUnitario: number;
+  custoTotal: number;
 }
 
 export interface ConfiguracaoImposto {
   nome: string;
   porcentagem: number;
+  valor: number;
   aplicarSobre: 'valorTotal' | 'valorProdutos' | 'valorServicos';
 }
 
 export interface MargemLucro {
   porcentagem: number;
+  valor: number;
   tipo: 'sobre_custo' | 'sobre_venda';
 }
 
 export interface ItemOrcamento {
   id: string;
+  orcamentoId?: string;
   tipo: 'produto' | 'servico';
   nome: string;
-  descricao?: string;
+  descricao: string;
   quantidade: number;
   unidade: string;
-  largura?: number;
-  altura?: number;
-  materiais: CustoMaterial[];
-  acabamentos: Acabamento[];
-  custosOperacionais: CustoOperacional[];
+  largura: number;
+  altura: number;
   custoUnitario: number;
-  margemLucro: MargemLucro;
-  impostos: ConfiguracaoImposto[];
   precoUnitario: number;
   precoTotal: number;
+  custoOperacional?: CustoOperacional[];
+  custoMaterial?: CustoMaterial[];
+  acabamentos?: Acabamento[];
+  margemLucro?: MargemLucro;
 }
 
 export interface Orcamento {
-  id: number;
+  id: string;
   numero: string;
-  status: 'rascunho' | 'enviado' | 'aprovado' | 'reprovado' | 'cancelado';
+  status: 'rascunho' | 'enviado' | 'aprovado' | 'rejeitado' | 'cancelado';
   data: string;
   validade: string;
   cliente: {
-    id: string;
     nome: string;
     email: string;
     telefone: string;
     endereco?: string;
-  };
+  }
   prazoEntrega: string;
-  condicoesEntrega?: string;
-  formaPagamento?: string;
+  formaPagamento: string;
   observacoes?: string;
   itens: ItemOrcamento[];
-  
-  // Totalizadores
   subtotal: number;
   descontos: number;
   impostos: number;
   total: number;
-  
-  // Custos
+  valorTotal?: number;
   custoTotal: number;
   margemLucroTotal: number;
   margemContribuicao: number;
-  
-  // Metadados
-  criadoPor: string;
   criadoEm: string;
   atualizadoEm: string;
   versao: number;
+  expandido?: boolean;
 }

@@ -12,7 +12,7 @@ export default defineConfig({
   },
   build: {
     outDir: "dist",
-    sourcemap: true,
+    sourcemap: false,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -23,10 +23,11 @@ export default defineConfig({
     },
     chunkSizeWarningLimit: 1000,
   },
-  base: "./",
+  base: "/",
   server: {
     port: 3000,
-    host: true
+    host: true,
+    cors: true
   },
   preview: {
     port: 3000,

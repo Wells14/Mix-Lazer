@@ -4,92 +4,91 @@ import {
   Acabamento, 
   CustoOperacional, 
   ConfiguracaoImposto,
-  MargemLucro 
+  MargemLucro,
+  Orcamento
 } from '../types/orcamento';
 
 export class CalculoOrcamentoService {
   // Calcula o custo total dos materiais
-  static calcularCustoMateriais(materiais: CustoMaterial[]): number {
+  static calcularCustoMaterial(materiais: CustoMaterial[]): number {
     return materiais.reduce((total, material) => {
-      const custoComDesperdicio = material.precoUnitario * material.quantidade * (1 + material.desperdicio / 100);
-      return total + custoComDesperdicio;
+      return total + material.custoTotal;
     }, 0);
   }
 
   // Calcula o custo total dos acabamentos
-  static calcularCustoAcabamentos(acabamentos: Acabamento[]): number {
+  static calcularCustoAcabamento(acabamentos: Acabamento[]): number {
     return acabamentos.reduce((total, acabamento) => {
-      return total + acabamento.custo;
+      return total + acabamento.custoTotal;
     }, 0);
   }
 
   // Calcula o custo operacional total
   static calcularCustoOperacional(custosOperacionais: CustoOperacional[]): number {
     return custosOperacionais.reduce((total, custo) => {
-      return total + (custo.valorHora * custo.tempoEstimado);
-    }, 0);
-  }
-
-  // Calcula o valor dos impostos
-  static calcularImpostos(valorBase: number, impostos: ConfiguracaoImposto[]): number {
-    return impostos.reduce((total, imposto) => {
-      return total + (valorBase * (imposto.porcentagem / 100));
+      return total + custo.custoTotal;
     }, 0);
   }
 
   // Calcula a margem de lucro
-  static calcularMargemLucro(custoTotal: number, margem: MargemLucro): number {
-    if (margem.tipo === 'sobre_custo') {
-      return custoTotal * (margem.porcentagem / 100);
-    } else { // sobre_venda
-      const fator = 1 - (margem.porcentagem / 100);
-      return (custoTotal / fator) - custoTotal;
+  static calcularMargemLucro(custoTotal: number, margemLucro: MargemLucro): number {
+    if (margemLucro.tipo === 'sobre_custo') {
+      return (custoTotal * margemLucro.porcentagem) / 100;
+    } else {
+      return (custoTotal / (1 - margemLucro.porcentagem / 100)) - custoTotal;
     }
   }
 
-  // Calcula o preço de venda unitário
-  static calcularPrecoVendaUnitario(item: ItemOrcamento): number {
-    // Calcula o custo total unitário
-    const custoMateriais = this.calcularCustoMateriais(item.materiais);
-    const custoAcabamentos = this.calcularCustoAcabamentos(item.acabamentos);
-    const custoOperacional = this.calcularCustoOperacional(item.custosOperacionais);
-    
-    const custoTotalUnitario = (custoMateriais + custoAcabamentos + custoOperacional) / item.quantidade;
-    
-    // Calcula a margem de lucro
-    const margemLucro = this.calcularMargemLucro(custoTotalUnitario, item.margemLucro);
-    
-    // Calcula o preço base (custo + margem)
-    const precoBase = custoTotalUnitario + margemLucro;
-    
-    // Calcula os impostos
-    const impostos = this.calcularImpostos(precoBase, item.impostos);
-    
-    // Retorna o preço final
-    return precoBase + impostos;
+  // Calcula o custo do item
+  static calcularCustoItem(item: ItemOrcamento): number {
+    const custoMaterial = this.calcularCustoMaterial(item.custoMaterial || []);
+    const custoAcabamento = this.calcularCustoAcabamento(item.acabamentos || []);
+    const custoOperacional = this.calcularCustoOperacional(item.custoOperacional || []);
+
+    return custoMaterial + custoAcabamento + custoOperacional;
   }
 
-  // Calcula todos os valores do item do orçamento
-  static calcularItem(item: ItemOrcamento): ItemOrcamento {
-    // Calcula o custo unitário
-    const custoMateriais = this.calcularCustoMateriais(item.materiais);
-    const custoAcabamentos = this.calcularCustoAcabamentos(item.acabamentos);
-    const custoOperacional = this.calcularCustoOperacional(item.custosOperacionais);
-    
-    const custoTotalUnitario = (custoMateriais + custoAcabamentos + custoOperacional) / item.quantidade;
-    
-    // Calcula o preço unitário
-    const precoUnitario = this.calcularPrecoVendaUnitario(item);
-    
-    // Calcula o preço total
-    const precoTotal = precoUnitario * item.quantidade;
-    
-    return {
-      ...item,
-      custoUnitario: custoTotalUnitario,
-      precoUnitario,
-      precoTotal
-    };
+  // Calcula o preço do item
+  static calcularPrecoItem(item: ItemOrcamento): number {
+    const custoTotal = this.calcularCustoItem(item);
+    const margemLucro = item.margemLucro ? this.calcularMargemLucro(custoTotal, item.margemLucro) : 0;
+
+    return custoTotal + margemLucro;
+  }
+
+  // Calcula o total do orçamento
+  static calcularTotalOrcamento(orcamento: Orcamento): number {
+    const subtotal = orcamento.itens.reduce((total, item) => {
+      return total + this.calcularPrecoItem(item);
+    }, 0);
+
+    const descontos = orcamento.descontos || 0;
+    const impostos = orcamento.impostos || 0;
+
+    return subtotal - descontos + impostos;
+  }
+
+  // Calcula o custo total do orçamento
+  static calcularCustoTotalOrcamento(orcamento: Orcamento): number {
+    return orcamento.itens.reduce((total, item) => {
+      return total + this.calcularCustoItem(item);
+    }, 0);
+  }
+
+  // Calcula a margem de lucro total do orçamento
+  static calcularMargemLucroTotalOrcamento(orcamento: Orcamento): number {
+    const custoTotal = this.calcularCustoTotalOrcamento(orcamento);
+    const total = this.calcularTotalOrcamento(orcamento);
+
+    return total - custoTotal;
+  }
+
+  // Calcula a margem de contribuição do orçamento
+  static calcularMargemContribuicaoOrcamento(orcamento: Orcamento): number {
+    const total = this.calcularTotalOrcamento(orcamento);
+    const custoTotal = this.calcularCustoTotalOrcamento(orcamento);
+
+    return ((total - custoTotal) / total) * 100;
   }
 
   // Calcula área em m² para produtos que usam dimensões
