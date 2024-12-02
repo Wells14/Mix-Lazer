@@ -23,12 +23,13 @@ export default defineConfig({
     },
     chunkSizeWarningLimit: 1000,
   },
+  base: "./",
   server: {
     port: 3000,
-    host: true,
+    host: true
   },
   preview: {
     port: 3000,
-    host: true,
+    host: true
   }
 });
