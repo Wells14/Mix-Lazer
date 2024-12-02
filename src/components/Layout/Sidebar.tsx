@@ -39,9 +39,10 @@ import {
   PaperclipIcon,
   ChevronDown as ChevronDownIcon,
   Package as PackageIcon,
-  File as FileIcon
+  File as FileIcon,
+  Menu
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -50,9 +51,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Link } from "react-router-dom";
+import { useResponsive } from '@/hooks/useResponsive';
 
 const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { isMobile } = useResponsive();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (isMobile) {
+      setIsCollapsed(true);
+    }
+  }, [isMobile]);
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
 
   const vendasItems = [
     { icon: <ClipboardList size={16} />, label: "Pedidos", path: "/vendas/pedidos" },
@@ -111,212 +125,221 @@ const Sidebar = () => {
   ];
 
   return (
-    <div
-      className={cn(
-        "fixed left-0 top-0 h-screen bg-[#002359] p-4 transition-all duration-300 z-50 overflow-y-auto",
-        isCollapsed ? "w-16 hover:w-64" : "w-64"
-      )}
-    >
-      <div className="flex items-center justify-between mb-8 pt-4 sticky top-0 bg-[#002359] z-10">
-        <Link to="/" className={cn("flex-1", isCollapsed ? "hidden group-hover:block" : "block")}>
-          <img 
-            src="/lovable-uploads/f6fbbd5b-3f1d-42b1-b83c-c2416ae63569.png" 
-            alt="Mix Laser" 
-            className="w-full h-auto max-h-24 object-contain px-2"
-          />
-        </Link>
+    <>
+      {isMobile && (
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-2 hover:bg-primary-hover rounded-lg transition-colors text-white"
+          onClick={toggleMobileMenu}
+          className="fixed top-4 left-4 z-50 p-2 bg-white rounded-md shadow-md md:hidden"
         >
-          {isCollapsed ? (
-            <ChevronRightIcon size={20} />
-          ) : (
-            <ChevronLeftIcon size={20} />
-          )}
+          <Menu size={24} />
         </button>
-      </div>
-
-      <nav className="pb-20">
-        {/* Menu Offset */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+      )}
+      <aside
+        className={`
+          fixed top-0 left-0 z-40 h-screen
+          ${isCollapsed ? 'w-16' : 'w-64'}
+          ${isMobile ? (isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}
+          transition-all duration-300 ease-in-out
+          bg-white border-r border-gray-200
+          flex flex-col
+          ${isMobile ? 'shadow-lg' : ''}
+        `}
+      >
+        <div className="flex items-center justify-between p-4">
+          <div className={`${isCollapsed ? 'hidden' : 'block'}`}>
+            <h1 className="text-xl font-bold">Dashboardly</h1>
+          </div>
+          {!isMobile && (
             <button
-              className={cn(
-                "flex items-center w-full p-2 rounded-lg transition-colors hover:bg-primary-hover group",
-                location.pathname.startsWith("/offset") && "bg-primary-hover"
-              )}
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="p-2 rounded-md hover:bg-gray-100"
             >
-              <PrinterIcon className="w-5 h-5 text-white" />
-              <span
+              {isCollapsed ? <ChevronRightIcon size={20} /> : <ChevronLeftIcon size={20} />}
+            </button>
+          )}
+        </div>
+
+        <nav className="pb-20">
+          {/* Menu Offset */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
                 className={cn(
-                  "ml-3 text-white",
-                  isCollapsed ? "hidden group-hover:block" : "block"
+                  "flex items-center w-full p-2 rounded-lg transition-colors hover:bg-primary-hover group",
+                  location.pathname.startsWith("/offset") && "bg-primary-hover"
                 )}
               >
-                Offset
-              </span>
-              <ChevronDownIcon
-                className={cn(
-                  "w-4 h-4 ml-auto text-white transition-transform",
-                  isCollapsed ? "hidden group-hover:block" : "block"
-                )}
-              />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56 bg-[#002359] text-white border-none">
-            <Link to="/offset/insumos">
-              <DropdownMenuItem className="hover:bg-primary-hover cursor-pointer">
-                <PackageIcon className="w-4 h-4 mr-2" />
-                Insumos
-              </DropdownMenuItem>
-            </Link>
-            <Link to="/offset/maquinas">
-              <DropdownMenuItem className="hover:bg-primary-hover cursor-pointer">
-                <PrinterIcon className="w-4 h-4 mr-2" />
-                Máquinas
-              </DropdownMenuItem>
-            </Link>
-            <Link to="/offset/acabamentos">
-              <DropdownMenuItem className="hover:bg-primary-hover cursor-pointer">
-                <ScissorsIcon className="w-4 h-4 mr-2" />
-                Acabamentos
-              </DropdownMenuItem>
-            </Link>
-            <Link to="/offset/papeis">
-              <DropdownMenuItem className="hover:bg-primary-hover cursor-pointer">
-                <FileIcon className="w-4 h-4 mr-2" />
-                Papéis
-              </DropdownMenuItem>
-            </Link>
-            <Link to="/offset/modelos">
-              <DropdownMenuItem className="hover:bg-primary-hover cursor-pointer">
-                <LayoutTemplateIcon className="w-4 h-4 mr-2" />
-                Modelos
-              </DropdownMenuItem>
-            </Link>
-          </DropdownMenuContent>
-        </DropdownMenu>
+                <PrinterIcon className="w-5 h-5 text-white" />
+                <span
+                  className={cn(
+                    "ml-3 text-white",
+                    isCollapsed ? "hidden group-hover:block" : "block"
+                  )}
+                >
+                  Offset
+                </span>
+                <ChevronDownIcon
+                  className={cn(
+                    "w-4 h-4 ml-auto text-white transition-transform",
+                    isCollapsed ? "hidden group-hover:block" : "block"
+                  )}
+                />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 bg-[#002359] text-white border-none">
+              <Link to="/offset/insumos">
+                <DropdownMenuItem className="hover:bg-primary-hover cursor-pointer">
+                  <PackageIcon className="w-4 h-4 mr-2" />
+                  Insumos
+                </DropdownMenuItem>
+              </Link>
+              <Link to="/offset/maquinas">
+                <DropdownMenuItem className="hover:bg-primary-hover cursor-pointer">
+                  <PrinterIcon className="w-4 h-4 mr-2" />
+                  Máquinas
+                </DropdownMenuItem>
+              </Link>
+              <Link to="/offset/acabamentos">
+                <DropdownMenuItem className="hover:bg-primary-hover cursor-pointer">
+                  <ScissorsIcon className="w-4 h-4 mr-2" />
+                  Acabamentos
+                </DropdownMenuItem>
+              </Link>
+              <Link to="/offset/papeis">
+                <DropdownMenuItem className="hover:bg-primary-hover cursor-pointer">
+                  <FileIcon className="w-4 h-4 mr-2" />
+                  Papéis
+                </DropdownMenuItem>
+              </Link>
+              <Link to="/offset/modelos">
+                <DropdownMenuItem className="hover:bg-primary-hover cursor-pointer">
+                  <LayoutTemplateIcon className="w-4 h-4 mr-2" />
+                  Modelos
+                </DropdownMenuItem>
+              </Link>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button 
-              className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-primary-hover rounded-lg transition-all duration-200"
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button 
+                className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-primary-hover rounded-lg transition-all duration-200"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <DollarSign size={20} />
+                <span className={cn("transition-opacity duration-300",
+                  isCollapsed ? "opacity-0 group-hover:opacity-100" : "opacity-100"
+                )}>
+                  Financeiro
+                </span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              className="w-56 ml-2 bg-white" 
+              side={isCollapsed ? "right" : "right"}
+              align="start"
               onClick={(e) => e.stopPropagation()}
             >
-              <DollarSign size={20} />
-              <span className={cn("transition-opacity duration-300",
-                isCollapsed ? "opacity-0 group-hover:opacity-100" : "opacity-100"
-              )}>
-                Financeiro
-              </span>
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent 
-            className="w-56 ml-2 bg-white" 
-            side={isCollapsed ? "right" : "right"}
-            align="start"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {financeiroItems.map((item, index) => (
-              <DropdownMenuItem key={index} asChild>
-                <Link 
-                  to={item.path}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </Link>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+              {financeiroItems.map((item, index) => (
+                <DropdownMenuItem key={index} asChild>
+                  <Link 
+                    to={item.path}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button 
-              className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-primary-hover rounded-lg transition-all duration-200"
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button 
+                className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-primary-hover rounded-lg transition-all duration-200"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <ShoppingCart size={20} />
+                <span className={cn("transition-opacity duration-300",
+                  isCollapsed ? "opacity-0 group-hover:opacity-100" : "opacity-100"
+                )}>
+                  Vendas
+                </span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              className="w-56 ml-2 bg-white" 
+              side={isCollapsed ? "right" : "right"}
+              align="start"
               onClick={(e) => e.stopPropagation()}
             >
-              <ShoppingCart size={20} />
-              <span className={cn("transition-opacity duration-300",
+              {vendasItems.map((item, index) => (
+                <DropdownMenuItem key={index} asChild>
+                  <Link 
+                    to={item.path}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {menuItems.map((item, index) => (
+            <Link
+              key={index}
+              to={item.path}
+              className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-primary-hover rounded-lg transition-all duration-200"
+              title={isCollapsed ? item.label : ""}
+            >
+              {item.icon}
+              <span className={cn("transition-opacity duration-300", 
                 isCollapsed ? "opacity-0 group-hover:opacity-100" : "opacity-100"
               )}>
-                Vendas
+                {item.label}
               </span>
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent 
-            className="w-56 ml-2 bg-white" 
-            side={isCollapsed ? "right" : "right"}
-            align="start"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {vendasItems.map((item, index) => (
-              <DropdownMenuItem key={index} asChild>
-                <Link 
-                  to={item.path}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </Link>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+            </Link>
+          ))}
 
-        {menuItems.map((item, index) => (
-          <Link
-            key={index}
-            to={item.path}
-            className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-primary-hover rounded-lg transition-all duration-200"
-            title={isCollapsed ? item.label : ""}
-          >
-            {item.icon}
-            <span className={cn("transition-opacity duration-300", 
-              isCollapsed ? "opacity-0 group-hover:opacity-100" : "opacity-100"
-            )}>
-              {item.label}
-            </span>
-          </Link>
-        ))}
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button 
-              className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-primary-hover rounded-lg transition-all duration-200"
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button 
+                className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-primary-hover rounded-lg transition-all duration-200"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <SettingsIcon size={20} />
+                <span className={cn("transition-opacity duration-300",
+                  isCollapsed ? "opacity-0 group-hover:opacity-100" : "opacity-100"
+                )}>
+                  Configurações
+                </span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              className="w-56 ml-2 bg-white" 
+              side={isCollapsed ? "right" : "right"}
+              align="start"
               onClick={(e) => e.stopPropagation()}
             >
-              <SettingsIcon size={20} />
-              <span className={cn("transition-opacity duration-300",
-                isCollapsed ? "opacity-0 group-hover:opacity-100" : "opacity-100"
-              )}>
-                Configurações
-              </span>
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent 
-            className="w-56 ml-2 bg-white" 
-            side={isCollapsed ? "right" : "right"}
-            align="start"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {configItems.map((item, index) => (
-              <DropdownMenuItem key={index} asChild>
-                <Link 
-                  to={item.path}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </Link>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </nav>
-    </div>
+              {configItems.map((item, index) => (
+                <DropdownMenuItem key={index} asChild>
+                  <Link 
+                    to={item.path}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </nav>
+      </aside>
+    </>
   );
 };
 
