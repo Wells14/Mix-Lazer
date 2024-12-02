@@ -17,12 +17,11 @@ export function Layout({ children }: LayoutProps) {
           flex-1 
           transition-all 
           duration-300 
-          p-4 
-          ${isMobile ? 'ml-0' : 'ml-64'}
-          ${isTablet ? 'ml-16' : ''}
+          p-8
+          ${isMobile ? 'ml-0' : isTablet ? 'ml-16' : 'ml-64'}
         `}
       >
-        <div className="container mx-auto">
+        <div className="max-w-7xl mx-auto">
           {children}
         </div>
       </main>

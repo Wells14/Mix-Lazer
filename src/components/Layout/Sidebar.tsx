@@ -129,30 +129,40 @@ const Sidebar = () => {
       {isMobile && (
         <button
           onClick={toggleMobileMenu}
-          className="fixed top-4 left-4 z-50 p-2 bg-white rounded-md shadow-md md:hidden"
+          className="fixed top-4 left-4 z-50 p-2 rounded-md bg-[#002359] text-white md:hidden"
         >
           <Menu size={24} />
         </button>
       )}
-      <aside
+      <div
         className={`
-          fixed top-0 left-0 z-40 h-screen
-          ${isCollapsed ? 'w-16' : 'w-64'}
+          fixed left-0 top-0 h-screen 
+          bg-[#002359] 
+          transition-all duration-300 
+          z-50 
+          overflow-y-auto
+          ${isCollapsed ? 'w-16 hover:w-64' : 'w-64'}
           ${isMobile ? (isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}
-          transition-all duration-300 ease-in-out
-          bg-white border-r border-gray-200
-          flex flex-col
-          ${isMobile ? 'shadow-lg' : ''}
         `}
       >
-        <div className="flex items-center justify-between p-4">
-          <div className={`${isCollapsed ? 'hidden' : 'block'}`}>
-            <h1 className="text-xl font-bold">Dashboardly</h1>
-          </div>
+        <div className="flex items-center justify-between mb-8 pt-4 sticky top-0 bg-[#002359] z-10">
+          <Link 
+            to="/" 
+            className={cn(
+              "flex-1", 
+              isCollapsed ? "hidden group-hover:block" : "block"
+            )}
+          >
+            <img 
+              src="/lovable-uploads/f6fbbd5b-3f1d-42b1-b83c-c2416ae63569.png" 
+              alt="Mix Laser" 
+              className="w-full h-auto max-h-24 object-contain px-2"
+            />
+          </Link>
           {!isMobile && (
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="p-2 rounded-md hover:bg-gray-100"
+              className="p-2 hover:bg-primary-hover rounded-lg transition-colors text-white"
             >
               {isCollapsed ? <ChevronRightIcon size={20} /> : <ChevronLeftIcon size={20} />}
             </button>
@@ -338,7 +348,7 @@ const Sidebar = () => {
             </DropdownMenuContent>
           </DropdownMenu>
         </nav>
-      </aside>
+      </div>
     </>
   );
 };
