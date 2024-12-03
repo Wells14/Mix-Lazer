@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .animated-gradient {
+    background: linear-gradient(
+      -45deg,
+      theme('colors.sidebar.from'),
+      theme('colors.sidebar.via'),
+      theme('colors.sidebar.to'),
+      theme('colors.sidebar.from')
+    );
+    background-size: 400% 400%;
+    animation: gradient-shift 12s ease infinite;
+    @apply bg-opacity-100;
+  }
+}
