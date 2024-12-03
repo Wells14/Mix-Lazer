@@ -20,13 +20,15 @@ import { useOrcamentosStore } from "@/stores/orcamentosStore";
 import { toast } from "sonner";
 import { OrcamentoForm } from "@/components/Orcamentos/OrcamentoForm";
 import { NovoOrcamentoForm } from "@/components/Orcamentos/NovoOrcamentoForm";
+import { ListaItensOrcamento } from "@/components/Orcamentos/ListaItensOrcamento";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
-import { formatCurrency, formatDate } from "@/lib/utils";
-import { Orcamento, ItemOrcamento } from "@/types/orcamento";
+import { formatCurrency, formatDate } from "@/utils/format";
+import type { Orcamento } from "@/types/orcamento";
+import type { NovoOrcamentoFormData } from "@/types/novoOrcamento";
 
-const Orcamentos = () => {
-  const [selectedTab, setSelectedTab] = useState("todos");
+export default function Orcamentos() {
+  const [selectedTab, setSelectedTab] = useState<string>("todos");
   const [showNovoOrcamento, setShowNovoOrcamento] = useState(false);
   const [orcamentoEmEdicao, setOrcamentoEmEdicao] = useState<Orcamento | null>(null);
   const [paginaAtual, setPaginaAtual] = useState(1);
@@ -49,104 +51,101 @@ const Orcamentos = () => {
     toast.success(`E-mail enviado para ${cliente}`);
   };
 
-  const handleEnviarMensagem = (cliente: string) => {
+  const handleEnviarWhatsApp = (cliente: string) => {
     toast.success(`Mensagem enviada para ${cliente}`);
   };
 
-  const handleEditarOrcamento = (orcamento: Orcamento) => {
-    setOrcamentoEmEdicao(orcamento);
-  };
-
-  const handleFecharEdicao = () => {
-    setOrcamentoEmEdicao(null);
-  };
-
-  const handleVisualizarOrcamento = (orcamento: Orcamento) => {
-    // TODO: Implementar visualização detalhada
-    toast.info(`Visualizando orçamento #${orcamento.numero}`);
-  };
-
-  const handleDuplicarOrcamento = async (orcamento: Orcamento) => {
+  const handleNovoOrcamento = async (dados: NovoOrcamentoFormData) => {
     try {
-      const novoOrcamento: Omit<Orcamento, 'id' | 'numero'> = {
-        ...orcamento,
-        data: new Date().toISOString(),
-        validade: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'rascunho'
-      };
-
-      await adicionarOrcamento(novoOrcamento);
-      toast.success("Orçamento duplicado com sucesso!");
+      adicionarOrcamento(dados);
+      setShowNovoOrcamento(false);
+      toast.success('Orçamento criado com sucesso!');
     } catch (error) {
-      toast.error("Erro ao duplicar orçamento");
+      toast.error('Erro ao criar orçamento');
     }
   };
 
-  const handleExcluirOrcamento = async (id: string) => {
+  const handleEditarOrcamento = async (orcamento: Orcamento) => {
+    try {
+      await atualizarOrcamento(orcamento);
+      setOrcamentoEmEdicao(null);
+      toast.success('Orçamento atualizado com sucesso!');
+    } catch (error) {
+      toast.error('Erro ao atualizar orçamento');
+    }
+  };
+
+  const handleRemoverOrcamento = async (id: string) => {
     try {
       await removerOrcamento(id);
-      toast.success("Orçamento excluído com sucesso!");
+      toast.success('Orçamento removido com sucesso!');
     } catch (error) {
-      toast.error("Erro ao excluir orçamento");
+      toast.error('Erro ao remover orçamento');
     }
   };
 
   const orcamentosFiltrados = orcamentos.filter(orcamento => {
-    const matchCliente = filtro.cliente 
-      ? orcamento.cliente.nome.toLowerCase().includes(filtro.cliente.toLowerCase())
-      : true;
-    
-    const matchStatus = filtro.status
-      ? orcamento.status === filtro.status
-      : true;
-
-    return matchCliente && matchStatus;
+    const matchCliente = orcamento.cliente.nome.toLowerCase().includes(filtro.cliente.toLowerCase());
+    const matchStatus = !filtro.status || orcamento.status === filtro.status;
+    const dataOrcamento = new Date(orcamento.data);
+    const matchDataInicio = !filtro.dataInicio || dataOrcamento >= filtro.dataInicio;
+    const matchDataFim = !filtro.dataFim || dataOrcamento <= filtro.dataFim;
+    return matchCliente && matchStatus && matchDataInicio && matchDataFim;
   });
 
+  const orcamentosPaginados = orcamentosFiltrados.slice(
+    (paginaAtual - 1) * itensPorPagina,
+    paginaAtual * itensPorPagina
+  );
+
   const totalPaginas = Math.ceil(orcamentosFiltrados.length / itensPorPagina);
-  const inicio = (paginaAtual - 1) * itensPorPagina;
-  const fim = inicio + itensPorPagina;
-  const orcamentosPaginados = orcamentosFiltrados.slice(inicio, fim);
 
   return (
-    <div className="space-y-4 p-4">
+    <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
-        <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList>
-            <TabsTrigger value="todos">Todos</TabsTrigger>
-            <TabsTrigger value="rascunhos">Rascunhos</TabsTrigger>
-            <TabsTrigger value="enviados">Enviados</TabsTrigger>
-            <TabsTrigger value="aprovados">Aprovados</TabsTrigger>
-          </TabsList>
-        </Tabs>
-
+        <h1 className="text-3xl font-bold">Orçamentos</h1>
         <Button onClick={() => setShowNovoOrcamento(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Novo Orçamento
         </Button>
       </div>
 
-      <Card className="p-4">
-        <div className="flex gap-4 mb-4">
+      <Card className="p-6">
+        <div className="flex gap-4 mb-6">
           <Input
-            placeholder="Filtrar por cliente"
+            placeholder="Buscar por cliente..."
             value={filtro.cliente}
             onChange={(e) => setFiltro({ ...filtro, cliente: e.target.value })}
           />
           <Input
-            placeholder="Filtrar por status"
-            value={filtro.status}
-            onChange={(e) => setFiltro({ ...filtro, status: e.target.value })}
+            type="date"
+            value={filtro.dataInicio?.toISOString().split('T')[0] || ''}
+            onChange={(e) => setFiltro({ ...filtro, dataInicio: e.target.value ? new Date(e.target.value) : null })}
+          />
+          <Input
+            type="date"
+            value={filtro.dataFim?.toISOString().split('T')[0] || ''}
+            onChange={(e) => setFiltro({ ...filtro, dataFim: e.target.value ? new Date(e.target.value) : null })}
           />
         </div>
 
-        <div className="rounded-md border">
+        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+          <TabsList>
+            <TabsTrigger value="todos">Todos</TabsTrigger>
+            <TabsTrigger value="rascunho">Rascunho</TabsTrigger>
+            <TabsTrigger value="enviado">Enviados</TabsTrigger>
+            <TabsTrigger value="aprovado">Aprovados</TabsTrigger>
+            <TabsTrigger value="rejeitado">Rejeitados</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <div className="mt-6">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Número</TableHead>
-                <TableHead>Data</TableHead>
                 <TableHead>Cliente</TableHead>
+                <TableHead>Data</TableHead>
                 <TableHead>Valor Total</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Ações</TableHead>
@@ -156,39 +155,34 @@ const Orcamentos = () => {
               {orcamentosPaginados.map((orcamento) => (
                 <TableRow key={orcamento.id}>
                   <TableCell>{orcamento.numero}</TableCell>
-                  <TableCell>{formatDate(new Date(orcamento.data))}</TableCell>
                   <TableCell>{orcamento.cliente.nome}</TableCell>
-                  <TableCell>{formatCurrency(orcamento.total || 0)}</TableCell>
-                  <TableCell>{orcamento.status}</TableCell>
+                  <TableCell>{formatDate(orcamento.data)}</TableCell>
+                  <TableCell>{formatCurrency(orcamento.total)}</TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                      orcamento.status === 'aprovado' ? 'bg-green-100 text-green-800' :
+                      orcamento.status === 'rejeitado' ? 'bg-red-100 text-red-800' :
+                      orcamento.status === 'enviado' ? 'bg-blue-100 text-blue-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {orcamento.status.charAt(0).toUpperCase() + orcamento.status.slice(1)}
+                    </span>
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleEnviarEmail(orcamento.cliente.email)}
+                        onClick={() => handleEnviarEmail(orcamento.cliente.nome)}
                       >
                         <Mail className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleEnviarMensagem(orcamento.cliente.telefone)}
+                        onClick={() => handleEnviarWhatsApp(orcamento.cliente.nome)}
                       >
                         <MessageSquare className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEditarOrcamento(orcamento)}
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleVisualizarOrcamento(orcamento)}
-                      >
-                        <Eye className="w-4 h-4" />
                       </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -196,11 +190,13 @@ const Orcamentos = () => {
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem onClick={() => handleDuplicarOrcamento(orcamento)}>
-                            Duplicar
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setOrcamentoEmEdicao(orcamento)}>
+                            <Edit2 className="w-4 h-4 mr-2" />
+                            Editar
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleExcluirOrcamento(orcamento.id)}>
+                          <DropdownMenuItem onClick={() => handleRemoverOrcamento(orcamento.id)}>
+                            <X className="w-4 h-4 mr-2" />
                             Excluir
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -211,49 +207,56 @@ const Orcamentos = () => {
               ))}
             </TableBody>
           </Table>
-        </div>
 
-        <div className="flex items-center justify-end space-x-2 py-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPaginaAtual(p => Math.max(1, p - 1))}
-            disabled={paginaAtual === 1}
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <div className="text-sm text-muted-foreground">
-            Página {paginaAtual} de {totalPaginas}
+          <div className="flex justify-between items-center mt-4">
+            <div className="text-sm text-gray-500">
+              Mostrando {orcamentosPaginados.length} de {orcamentosFiltrados.length} orçamentos
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setPaginaAtual(p => Math.max(1, p - 1))}
+                disabled={paginaAtual === 1}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-sm">
+                Página {paginaAtual} de {totalPaginas}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setPaginaAtual(p => Math.min(totalPaginas, p + 1))}
+                disabled={paginaAtual === totalPaginas}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPaginaAtual(p => Math.min(totalPaginas, p + 1))}
-            disabled={paginaAtual === totalPaginas}
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
         </div>
       </Card>
 
       <Dialog open={showNovoOrcamento} onOpenChange={setShowNovoOrcamento}>
         <DialogContent className="max-w-4xl">
-          <NovoOrcamentoForm onSuccess={() => setShowNovoOrcamento(false)} />
+          <NovoOrcamentoForm
+            onSubmit={handleNovoOrcamento}
+            onCancel={() => setShowNovoOrcamento(false)}
+          />
         </DialogContent>
       </Dialog>
 
-      {orcamentoEmEdicao && (
-        <Dialog open={!!orcamentoEmEdicao} onOpenChange={handleFecharEdicao}>
-          <DialogContent className="max-w-4xl">
-            <OrcamentoForm 
-              orcamento={orcamentoEmEdicao} 
-              onSuccess={handleFecharEdicao}
+      <Dialog open={!!orcamentoEmEdicao} onOpenChange={(open) => !open && setOrcamentoEmEdicao(null)}>
+        <DialogContent className="max-w-4xl">
+          {orcamentoEmEdicao && (
+            <OrcamentoForm
+              orcamento={orcamentoEmEdicao}
+              onSubmit={handleEditarOrcamento}
+              onCancel={() => setOrcamentoEmEdicao(null)}
             />
-          </DialogContent>
-        </Dialog>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
-};
-
-export default Orcamentos;
+}

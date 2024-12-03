@@ -1,104 +1,163 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card } from "@/components/ui/card";
-import { PaletteIcon, Settings2Icon, PackageIcon, TruckIcon, XIcon, FileSignature, HandshakeIcon } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { VendaService } from '@/services/VendaService';
+import { Venda, VendaFiltros } from '@/types/venda';
+import { VendaList } from '@/components/Vendas/VendaList';
+import { VendaDetalhes } from '@/components/Vendas/VendaDetalhes';
+import { Button } from '@/components/ui/button';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
-const Vendas = () => {
-  const statusCards = [
-    { label: "AGUARDANDO", count: 1, icon: <FileSignature className="text-white" size={24} /> },
-    { label: "ARTE", count: 1, icon: <PaletteIcon className="text-white" size={24} /> },
-    { label: "PRODUÇÃO", count: 1, icon: <Settings2Icon className="text-white" size={24} /> },
-    { label: "FINALIZADO", count: 0, icon: <PackageIcon className="text-white" size={24} /> },
-    { label: "EXPEDIÇÃO", count: 0, icon: <TruckIcon className="text-white" size={24} /> },
-    { label: "ENTREGUE", count: 1, icon: <TruckIcon className="text-white" size={24} /> },
-    { label: "CANCELADO", count: 0, icon: <XIcon className="text-white" size={24} /> },
-    { label: "NOVO ORÇAMENTO", count: 4, icon: <FileSignature className="text-white" size={24} /> },
-    { label: "EM NEGOCIAÇÃO", count: 0, icon: <HandshakeIcon className="text-white" size={24} /> },
-    { label: "CANCELADO", count: 0, icon: <XIcon className="text-white" size={24} /> }
-  ];
+export default function Vendas() {
+    const [loading, setLoading] = useState(true);
+    const [vendas, setVendas] = useState<Venda[]>([]);
+    const [filtros, setFiltros] = useState<VendaFiltros>({
+        ordenacao: 'data',
+        ordem: 'desc',
+    });
+    const [vendaSelecionada, setVendaSelecionada] = useState<Venda | null>(null);
+    const [dialogOpen, setDialogOpen] = useState(false);
 
-  const getStatusColor = (label: string) => {
-    const colors = {
-      "AGUARDANDO": "bg-[#6366f1]",
-      "ARTE": "bg-[#f97316]",
-      "PRODUÇÃO": "bg-[#3b82f6]",
-      "FINALIZADO": "bg-[#166534]",
-      "EXPEDIÇÃO": "bg-[#0284c7]",
-      "ENTREGUE": "bg-[#0d9488]",
-      "CANCELADO": "bg-[#ef4444]",
-      "NOVO ORÇAMENTO": "bg-[#8b5cf6]",
-      "EM NEGOCIAÇÃO": "bg-[#0d9488]"
+    const carregarVendas = async () => {
+        try {
+            setLoading(true);
+            const data = await VendaService.listarVendas(filtros);
+            setVendas(data);
+        } catch (error) {
+            toast.error('Erro ao carregar vendas');
+        } finally {
+            setLoading(false);
+        }
     };
-    return colors[label as keyof typeof colors] || "bg-gray-500";
-  };
 
-  return (
-    <div className="p-6 space-y-6">
-      <Tabs defaultValue="pedidos" className="w-full">
-        <TabsList>
-          <TabsTrigger value="pedidos">Pedidos</TabsTrigger>
-          <TabsTrigger value="orcamentos">Orçamentos</TabsTrigger>
-          <TabsTrigger value="produto-simples">Produto Simples</TabsTrigger>
-          <TabsTrigger value="pcp">PCP</TabsTrigger>
-          <TabsTrigger value="pdv">PDV</TabsTrigger>
-          <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
-        </TabsList>
+    useEffect(() => {
+        carregarVendas();
+    }, [filtros]);
 
-        <TabsContent value="pedidos" className="space-y-4">
-          <div className="text-2xl font-bold mb-6">PEDIDOS</div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-            {statusCards.slice(0, 7).map((status, index) => (
-              <Card key={index} className="p-4 cursor-pointer hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-4">
-                  <div className={`${getStatusColor(status.label)} p-3 rounded-lg`}>
-                    {status.icon}
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">{status.label}</p>
-                    <h3 className="text-2xl font-semibold mt-1">{status.count}</h3>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
+    const handleViewVenda = (venda: Venda) => {
+        setVendaSelecionada(venda);
+        setDialogOpen(true);
+    };
 
-        <TabsContent value="orcamentos" className="space-y-4">
-          <div className="text-2xl font-bold mb-6">ORÇAMENTOS</div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {statusCards.slice(7).map((status, index) => (
-              <Card key={index} className="p-4 cursor-pointer hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-4">
-                  <div className={`${getStatusColor(status.label)} p-3 rounded-lg`}>
-                    {status.icon}
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">{status.label}</p>
-                    <h3 className="text-2xl font-semibold mt-1">{status.count}</h3>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
+    const handleUpdateStatus = async (id: string, status: 'aprovada' | 'cancelada') => {
+        try {
+            await VendaService.atualizarStatus(id, status);
+            toast.success(`Venda ${status === 'aprovada' ? 'aprovada' : 'cancelada'} com sucesso`);
+            carregarVendas();
+        } catch (error) {
+            toast.error('Erro ao atualizar status da venda');
+        }
+    };
 
-        <TabsContent value="produto-simples">
-          <div className="text-2xl font-bold">Produto Simples</div>
-        </TabsContent>
+    return (
+        <div className="container mx-auto py-6 space-y-6">
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold">Histórico de Vendas</h1>
+                <Button onClick={carregarVendas}>
+                    Atualizar
+                </Button>
+            </div>
 
-        <TabsContent value="pcp">
-          <div className="text-2xl font-bold">PCP</div>
-        </TabsContent>
+            <div className="flex gap-4">
+                <Input
+                    type="date"
+                    value={filtros.dataInicio}
+                    onChange={(e) =>
+                        setFiltros({ ...filtros, dataInicio: e.target.value })
+                    }
+                    className="w-[180px]"
+                />
 
-        <TabsContent value="pdv">
-          <div className="text-2xl font-bold">PDV</div>
-        </TabsContent>
+                <Input
+                    type="date"
+                    value={filtros.dataFim}
+                    onChange={(e) =>
+                        setFiltros({ ...filtros, dataFim: e.target.value })
+                    }
+                    className="w-[180px]"
+                />
 
-        <TabsContent value="tarefas">
-          <div className="text-2xl font-bold">Tarefas</div>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-};
+                <Select
+                    value={filtros.status}
+                    onValueChange={(value: any) =>
+                        setFiltros({ ...filtros, status: value })
+                    }
+                >
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="">Todos</SelectItem>
+                        <SelectItem value="pendente">Pendente</SelectItem>
+                        <SelectItem value="aprovada">Aprovada</SelectItem>
+                        <SelectItem value="cancelada">Cancelada</SelectItem>
+                    </SelectContent>
+                </Select>
 
-export default Vendas;
+                <Select
+                    value={filtros.ordenacao}
+                    onValueChange={(value: any) =>
+                        setFiltros({ ...filtros, ordenacao: value })
+                    }
+                >
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Ordenar por" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="data">Data</SelectItem>
+                        <SelectItem value="valor">Valor</SelectItem>
+                        <SelectItem value="cliente">Cliente</SelectItem>
+                    </SelectContent>
+                </Select>
+
+                <Select
+                    value={filtros.ordem}
+                    onValueChange={(value: any) =>
+                        setFiltros({ ...filtros, ordem: value })
+                    }
+                >
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Ordem" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="asc">Crescente</SelectItem>
+                        <SelectItem value="desc">Decrescente</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+
+            {loading ? (
+                <div className="text-center">Carregando...</div>
+            ) : (
+                <VendaList
+                    vendas={vendas}
+                    onView={handleViewVenda}
+                    onUpdateStatus={handleUpdateStatus}
+                />
+            )}
+
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogContent className="max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle>Detalhes da Venda</DialogTitle>
+                    </DialogHeader>
+                    {vendaSelecionada && (
+                        <VendaDetalhes venda={vendaSelecionada} />
+                    )}
+                </DialogContent>
+            </Dialog>
+        </div>
+    );
+}

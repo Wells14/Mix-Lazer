@@ -1,254 +1,252 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Select } from '../ui/select';
-import { Textarea } from '../ui/textarea';
-import { useOrcamentosStore } from '@/stores/orcamentosStore';
-import { ItemOrcamento, MargemLucro } from '@/types/orcamento';
-import { useCallback } from 'react';
+import { z } from 'zod';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Textarea } from '@/components/ui/textarea';
+import { ItemOrcamento } from '@/types/orcamento';
 
-const formSchema = z.object({
+const itemOrcamentoSchema = z.object({
   tipo: z.enum(['produto', 'servico']),
   nome: z.string().min(1, 'Nome é obrigatório'),
-  descricao: z.string().min(1, 'Descrição é obrigatória'),
+  descricao: z.string().optional(),
   quantidade: z.number().min(1, 'Quantidade deve ser maior que 0'),
   unidade: z.string().min(1, 'Unidade é obrigatória'),
-  largura: z.number().min(0),
-  altura: z.number().min(0),
-  custoUnitario: z.number().min(0),
-  precoUnitario: z.number().min(0),
-  precoTotal: z.number().min(0),
-  margemLucro: z.object({
-    tipo: z.enum(['sobre_custo', 'sobre_venda']),
-    porcentagem: z.number().min(0).max(100)
-  })
+  largura: z.number().min(0, 'Largura deve ser maior ou igual a 0'),
+  altura: z.number().min(0, 'Altura deve ser maior ou igual a 0'),
+  custoUnitario: z.number().min(0, 'Custo unitário deve ser maior ou igual a 0'),
+  precoUnitario: z.number().min(0, 'Preço unitário deve ser maior ou igual a 0'),
 });
 
-type ItemOrcamentoFormData = z.infer<typeof formSchema>;
+type ItemOrcamentoFormData = z.infer<typeof itemOrcamentoSchema>;
 
 interface ItemOrcamentoFormProps {
-  orcamentoId: string;
-  onSubmit: (item: ItemOrcamento) => void;
-  onClose?: () => void;
-  initialData?: ItemOrcamento;
+  item?: ItemOrcamento;
+  onSubmit: (data: ItemOrcamentoFormData) => void;
+  onCancel: () => void;
 }
 
-export function ItemOrcamentoForm({ 
-  orcamentoId, 
-  onSubmit,
-  onClose,
-  initialData 
-}: ItemOrcamentoFormProps) {
-  const { adicionarItemOrcamento } = useOrcamentosStore();
-
+export function ItemOrcamentoForm({ item, onSubmit, onCancel }: ItemOrcamentoFormProps) {
   const form = useForm<ItemOrcamentoFormData>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(itemOrcamentoSchema),
     defaultValues: {
-      tipo: initialData?.tipo || 'produto',
-      nome: initialData?.nome || '',
-      descricao: initialData?.descricao || '',
-      quantidade: initialData?.quantidade || 1,
-      unidade: initialData?.unidade || 'un',
-      largura: initialData?.largura || 0,
-      altura: initialData?.altura || 0,
-      custoUnitario: initialData?.custoUnitario || 0,
-      precoUnitario: initialData?.precoUnitario || 0,
-      precoTotal: initialData?.precoTotal || 0,
-      margemLucro: {
-        tipo: initialData?.margemLucro?.tipo || 'sobre_custo',
-        porcentagem: initialData?.margemLucro?.porcentagem || 30
-      }
+      tipo: item?.tipo || 'produto',
+      nome: item?.nome || '',
+      descricao: item?.descricao || '',
+      quantidade: item?.quantidade || 1,
+      unidade: item?.unidade || '',
+      largura: item?.largura || 0,
+      altura: item?.altura || 0,
+      custoUnitario: item?.custoUnitario || 0,
+      precoUnitario: item?.precoUnitario || 0,
     }
   });
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors }
-  } = form;
-
-  const onSubmitForm = useCallback(async (data: ItemOrcamentoFormData) => {
-    try {
-      const item: Omit<ItemOrcamento, 'id'> = {
-        tipo: data.tipo,
-        nome: data.nome,
-        descricao: data.descricao,
-        quantidade: Number(data.quantidade) || 0,
-        unidade: data.unidade,
-        largura: Number(data.largura) || 0,
-        altura: Number(data.altura) || 0,
-        custoUnitario: Number(data.custoUnitario) || 0,
-        precoUnitario: Number(data.precoUnitario) || 0,
-        precoTotal: Number(data.precoTotal) || 0,
-        custoOperacional: [],
-        custoMaterial: [],
-        acabamentos: [],
-        margemLucro: {
-          porcentagem: Number(data.margemLucro.porcentagem) || 0,
-          valor: 0,
-          tipo: data.margemLucro.tipo
-        }
-      };
-
-      await onSubmit(item as ItemOrcamento);
-      if (onClose) onClose();
-    } catch (error) {
-      console.error('Erro ao salvar item:', error);
-    }
-  }, [onSubmit, onClose]);
+  const handleSubmit = (data: ItemOrcamentoFormData) => {
+    onSubmit(data);
+  };
 
   return (
-    <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label htmlFor="tipo">Tipo</label>
-          <Select {...register('tipo')} defaultValue="produto">
-            <option value="produto">Produto</option>
-            <option value="servico">Serviço</option>
-          </Select>
-          {errors.tipo && (
-            <span className="text-sm text-red-500">{errors.tipo.message}</span>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="nome">Nome</label>
-          <Input {...register('nome')} placeholder="Nome do item" />
-          {errors.nome && (
-            <span className="text-sm text-red-500">{errors.nome.message}</span>
-          )}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <label htmlFor="descricao">Descrição</label>
-        <Textarea {...register('descricao')} placeholder="Descrição detalhada" />
-        {errors.descricao && (
-          <span className="text-sm text-red-500">{errors.descricao.message}</span>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label htmlFor="quantidade">Quantidade</label>
-          <Input
-            {...register('quantidade', { valueAsNumber: true })}
-            type="number"
-            min="1"
-            step="1"
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="tipo"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tipo</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="produto">Produto</SelectItem>
+                    <SelectItem value="servico">Serviço</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-          {errors.quantidade && (
-            <span className="text-sm text-red-500">{errors.quantidade.message}</span>
-          )}
-        </div>
 
-        <div className="space-y-2">
-          <label htmlFor="unidade">Unidade</label>
-          <Select {...register('unidade')} defaultValue="un">
-            <option value="un">Unidade</option>
-            <option value="m">Metro</option>
-            <option value="m2">Metro Quadrado</option>
-            <option value="kg">Quilograma</option>
-            <option value="h">Hora</option>
-          </Select>
-          {errors.unidade && (
-            <span className="text-sm text-red-500">{errors.unidade.message}</span>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label htmlFor="largura">Largura</label>
-          <Input
-            {...register('largura', { valueAsNumber: true })}
-            type="number"
-            min="0"
-            step="0.01"
+          <FormField
+            control={form.control}
+            name="nome"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nome</FormLabel>
+                <FormControl>
+                  <Input placeholder="Nome do item" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-          {errors.largura && (
-            <span className="text-sm text-red-500">{errors.largura.message}</span>
-          )}
         </div>
 
-        <div className="space-y-2">
-          <label htmlFor="altura">Altura</label>
-          <Input
-            {...register('altura', { valueAsNumber: true })}
-            type="number"
-            min="0"
-            step="0.01"
+        <FormField
+          control={form.control}
+          name="descricao"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Descrição</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Descrição detalhada do item"
+                  className="min-h-[100px]"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="quantidade"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Quantidade</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min="1"
+                    step="1"
+                    {...field}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-          {errors.altura && (
-            <span className="text-sm text-red-500">{errors.altura.message}</span>
-          )}
-        </div>
-      </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label htmlFor="custoUnitario">Custo Unitário</label>
-          <Input
-            {...register('custoUnitario', { valueAsNumber: true })}
-            type="number"
-            min="0"
-            step="0.01"
+          <FormField
+            control={form.control}
+            name="unidade"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Unidade</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a unidade" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="un">Unidade</SelectItem>
+                    <SelectItem value="m2">Metro Quadrado</SelectItem>
+                    <SelectItem value="ml">Metro Linear</SelectItem>
+                    <SelectItem value="kg">Quilograma</SelectItem>
+                    <SelectItem value="h">Hora</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-          {errors.custoUnitario && (
-            <span className="text-sm text-red-500">{errors.custoUnitario.message}</span>
-          )}
         </div>
 
-        <div className="space-y-2">
-          <label htmlFor="precoUnitario">Preço Unitário</label>
-          <Input
-            {...register('precoUnitario', { valueAsNumber: true })}
-            type="number"
-            min="0"
-            step="0.01"
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="largura"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Largura</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    {...field}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-          {errors.precoUnitario && (
-            <span className="text-sm text-red-500">{errors.precoUnitario.message}</span>
-          )}
-        </div>
-      </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label htmlFor="precoTotal">Preço Total</label>
-          <Input
-            {...register('precoTotal', { valueAsNumber: true })}
-            type="number"
-            min="0"
-            step="0.01"
+          <FormField
+            control={form.control}
+            name="altura"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Altura</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    {...field}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-          {errors.precoTotal && (
-            <span className="text-sm text-red-500">{errors.precoTotal.message}</span>
-          )}
         </div>
 
-        <div className="space-y-2">
-          <label htmlFor="margemLucro.tipo">Tipo de Margem</label>
-          <Select {...register('margemLucro.tipo')} defaultValue="sobre_custo">
-            <option value="sobre_custo">Sobre Custo</option>
-            <option value="sobre_venda">Sobre Venda</option>
-          </Select>
-          {errors.margemLucro?.tipo && (
-            <span className="text-sm text-red-500">{errors.margemLucro.tipo.message}</span>
-          )}
-        </div>
-      </div>
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="custoUnitario"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Custo Unitário</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    {...field}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-      <div className="flex justify-end space-x-2">
-        <Button type="button" variant="outline" onClick={onClose}>
-          Cancelar
-        </Button>
-        <Button type="submit">
-          Adicionar Item
-        </Button>
-      </div>
-    </form>
+          <FormField
+            control={form.control}
+            name="precoUnitario"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Preço Unitário</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    {...field}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancelar
+          </Button>
+          <Button type="submit">
+            {item ? 'Atualizar Item' : 'Adicionar Item'}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 }

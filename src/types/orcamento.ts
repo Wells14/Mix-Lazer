@@ -76,7 +76,6 @@ export interface Orcamento {
   descontos: number;
   impostos: number;
   total: number;
-  valorTotal?: number;
   custoTotal: number;
   margemLucroTotal: number;
   margemContribuicao: number;

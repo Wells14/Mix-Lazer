@@ -6,7 +6,7 @@ import ContributionMargin from "@/components/Dashboard/ContributionMargin";
 import ProductionMetrics from "@/components/Dashboard/ProductionMetrics";
 import OrdersTable from "@/components/Dashboard/OrdersTable";
 
-const Index = () => {
+export default function Home() {
   const statusCards = [
     {
       icon: <FolderIcon className="text-white" size={20} />,
@@ -33,7 +33,7 @@ const Index = () => {
       color: "bg-[#166534]",
     },
     {
-      icon: <PackageIcon className="text-white" size={20} />,
+      icon: <TruckIcon className="text-white" size={20} />,
       label: "Expedição",
       count: 0,
       color: "bg-[#0284c7]",
@@ -58,20 +58,26 @@ const Index = () => {
       <main className="flex-1 ml-16">
         <Header />
         <div className="p-6 mt-16 space-y-6">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {statusCards.map((card, index) => (
-              <StatusCard key={index} {...card} />
+              <StatusCard
+                key={index}
+                icon={card.icon}
+                label={card.label}
+                count={card.count}
+                color={card.color}
+              />
             ))}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <ContributionMargin />
             <ProductionMetrics />
           </div>
+
           <OrdersTable />
         </div>
       </main>
     </div>
   );
-};
-
-export default Index;
+}

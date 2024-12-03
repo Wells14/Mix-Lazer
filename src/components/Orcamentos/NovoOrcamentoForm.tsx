@@ -1,44 +1,26 @@
 import { useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useOrcamentosStore } from '@/stores/orcamentosStore';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DatePicker } from '@/components/ui/datepicker';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { formatDate, addDays } from '@/utils/format';
-
-const novoOrcamentoSchema = z.object({
-  data: z.date(),
-  validade: z.date(),
-  cliente: z.object({
-    nome: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
-    email: z.string().email('Email inválido'),
-    telefone: z.string().min(10, 'Telefone deve ter no mínimo 10 dígitos'),
-    endereco: z.string().optional()
-  }),
-  prazoEntrega: z.string().min(1, 'Prazo de entrega é obrigatório'),
-  formaPagamento: z.string().min(1, 'Forma de pagamento é obrigatória'),
-  observacoes: z.string().optional()
-});
-
-type NovoOrcamentoFormData = z.infer<typeof novoOrcamentoSchema>;
+import { cn } from "@/lib/utils";
+import { addDays } from "date-fns";
+import { novoOrcamentoSchema, type NovoOrcamentoFormData } from '@/types/novoOrcamento';
 
 interface NovoOrcamentoFormProps {
-  onSuccess?: () => void;
+  onSubmit: (orcamento: NovoOrcamentoFormData) => Promise<void>;
+  onCancel: () => void;
 }
 
-export function NovoOrcamentoForm({ onSuccess }: NovoOrcamentoFormProps) {
-  const { adicionarOrcamento } = useOrcamentosStore();
-
+export function NovoOrcamentoForm({ onSubmit, onCancel }: NovoOrcamentoFormProps) {
   const form = useForm<NovoOrcamentoFormData>({
     resolver: zodResolver(novoOrcamentoSchema),
     defaultValues: {
       data: new Date(),
-      validade: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 dias
+      validade: addDays(new Date(), 15),
       cliente: {
         nome: '',
         email: '',
@@ -51,45 +33,19 @@ export function NovoOrcamentoForm({ onSuccess }: NovoOrcamentoFormProps) {
     }
   });
 
-  const onSubmit = useCallback(async (data: NovoOrcamentoFormData) => {
+  const handleSubmit = useCallback(async (data: NovoOrcamentoFormData) => {
     try {
-      await adicionarOrcamento({
-        data: formatDate(new Date()),
-        validade: formatDate(addDays(new Date(), 15)),
-        cliente: {
-          nome: data.cliente.nome,
-          email: data.cliente.email,
-          telefone: data.cliente.telefone,
-          endereco: data.cliente.endereco,
-        },
-        prazoEntrega: data.prazoEntrega,
-        formaPagamento: data.formaPagamento,
-        observacoes: data.observacoes,
-        status: "rascunho",
-        itens: [],
-        subtotal: 0,
-        descontos: 0,
-        impostos: 0,
-        total: 0,
-        custoTotal: 0,
-        margemLucroTotal: 0,
-        margemContribuicao: 0,
-        criadoEm: new Date().toISOString(),
-        atualizadoEm: new Date().toISOString(),
-        versao: 1
-      });
-
+      await onSubmit(data);
       form.reset();
-      onSuccess?.();
     } catch (error) {
-      console.error('Erro ao criar orçamento:', error);
+      console.error('Erro ao salvar orçamento:', error);
     }
-  }, [adicionarOrcamento, form, onSuccess]);
+  }, [onSubmit, form]);
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-2 gap-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="data"
@@ -97,9 +53,10 @@ export function NovoOrcamentoForm({ onSuccess }: NovoOrcamentoFormProps) {
               <FormItem>
                 <FormLabel>Data</FormLabel>
                 <FormControl>
-                  <DatePicker
-                    selected={field.value}
-                    onChange={field.onChange}
+                  <Input
+                    type="date"
+                    value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
+                    onChange={(e) => field.onChange(new Date(e.target.value))}
                   />
                 </FormControl>
                 <FormMessage />
@@ -114,9 +71,10 @@ export function NovoOrcamentoForm({ onSuccess }: NovoOrcamentoFormProps) {
               <FormItem>
                 <FormLabel>Validade</FormLabel>
                 <FormControl>
-                  <DatePicker
-                    selected={field.value}
-                    onChange={field.onChange}
+                  <Input
+                    type="date"
+                    value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
+                    onChange={(e) => field.onChange(new Date(e.target.value))}
                   />
                 </FormControl>
                 <FormMessage />
@@ -133,7 +91,7 @@ export function NovoOrcamentoForm({ onSuccess }: NovoOrcamentoFormProps) {
               <FormItem>
                 <FormLabel>Nome do Cliente</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="Nome completo" />
+                  <Input placeholder="Nome completo" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -147,7 +105,7 @@ export function NovoOrcamentoForm({ onSuccess }: NovoOrcamentoFormProps) {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input {...field} type="email" placeholder="email@exemplo.com" />
+                  <Input type="email" placeholder="email@exemplo.com" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -161,7 +119,7 @@ export function NovoOrcamentoForm({ onSuccess }: NovoOrcamentoFormProps) {
               <FormItem>
                 <FormLabel>Telefone</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="(00) 00000-0000" />
+                  <Input placeholder="(00) 00000-0000" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -175,7 +133,7 @@ export function NovoOrcamentoForm({ onSuccess }: NovoOrcamentoFormProps) {
               <FormItem>
                 <FormLabel>Endereço</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="Endereço completo" />
+                  <Input placeholder="Endereço completo" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -183,29 +141,16 @@ export function NovoOrcamentoForm({ onSuccess }: NovoOrcamentoFormProps) {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="prazoEntrega"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Prazo de Entrega</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o prazo" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="imediato">Imediato</SelectItem>
-                    <SelectItem value="1_dia">1 dia útil</SelectItem>
-                    <SelectItem value="2_dias">2 dias úteis</SelectItem>
-                    <SelectItem value="5_dias">5 dias úteis</SelectItem>
-                    <SelectItem value="7_dias">7 dias úteis</SelectItem>
-                    <SelectItem value="15_dias">15 dias úteis</SelectItem>
-                    <SelectItem value="30_dias">30 dias úteis</SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <Input placeholder="Ex: 15 dias úteis" {...field} />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -224,12 +169,10 @@ export function NovoOrcamentoForm({ onSuccess }: NovoOrcamentoFormProps) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                    <SelectItem value="pix">PIX</SelectItem>
-                    <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
-                    <SelectItem value="cartao_debito">Cartão de Débito</SelectItem>
-                    <SelectItem value="boleto">Boleto</SelectItem>
-                    <SelectItem value="transferencia">Transferência</SelectItem>
+                    <SelectItem value="avista">À Vista</SelectItem>
+                    <SelectItem value="30dias">30 Dias</SelectItem>
+                    <SelectItem value="2x">2x sem juros</SelectItem>
+                    <SelectItem value="3x">3x sem juros</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -246,9 +189,9 @@ export function NovoOrcamentoForm({ onSuccess }: NovoOrcamentoFormProps) {
               <FormLabel>Observações</FormLabel>
               <FormControl>
                 <Textarea
+                  placeholder="Observações adicionais..."
+                  className="min-h-[100px]"
                   {...field}
-                  placeholder="Observações adicionais sobre o orçamento"
-                  className="h-24"
                 />
               </FormControl>
               <FormMessage />
@@ -256,7 +199,10 @@ export function NovoOrcamentoForm({ onSuccess }: NovoOrcamentoFormProps) {
           )}
         />
 
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancelar
+          </Button>
           <Button type="submit">
             Criar Orçamento
           </Button>

@@ -1,138 +1,160 @@
 import { create } from 'zustand';
-import { Orcamento, ItemOrcamento } from '@/types/orcamento';
 import { v4 as uuidv4 } from 'uuid';
+import { Orcamento, ItemOrcamento } from '@/types/orcamento';
+import { NovoOrcamentoFormData } from '@/types/novoOrcamento';
 
-interface OrcamentosStore {
+interface OrcamentosState {
   orcamentos: Orcamento[];
-  filtro: {
-    cliente?: string;
-    status?: string;
-    dataInicio?: Date;
-    dataFim?: Date;
-  };
-  paginacao: {
-    pagina: number;
-    itensPorPagina: number;
-  };
-  adicionarOrcamento: (orcamento: Omit<Orcamento, 'id' | 'numero'>) => Promise<Orcamento>;
-  atualizarOrcamento: (id: string, orcamento: Orcamento) => void;
+  orcamentoAtual: Orcamento | null;
+  adicionarOrcamento: (dados: NovoOrcamentoFormData) => void;
+  atualizarOrcamento: (orcamento: Orcamento) => void;
   removerOrcamento: (id: string) => void;
-  adicionarItemOrcamento: (orcamentoId: string, item: Omit<ItemOrcamento, 'id' | 'orcamentoId'>) => Promise<ItemOrcamento>;
-  atualizarItemOrcamento: (orcamentoId: string, itemId: string, item: Partial<ItemOrcamento>) => void;
-  removerItemOrcamento: (orcamentoId: string, itemId: string) => void;
-  setFiltro: (filtro: OrcamentosStore['filtro']) => void;
-  setPaginacao: (paginacao: OrcamentosStore['paginacao']) => void;
+  selecionarOrcamento: (id: string) => void;
+  adicionarItem: (orcamentoId: string, item: Omit<ItemOrcamento, 'id' | 'orcamentoId'>) => void;
+  atualizarItem: (orcamentoId: string, item: ItemOrcamento) => void;
+  removerItem: (orcamentoId: string, itemId: string) => void;
+  calcularTotais: (orcamentoId: string) => void;
 }
 
-const gerarNumeroOrcamento = async () => {
-  // Implementação para gerar número de orçamento
-  return '000001';
-};
-
-export const useOrcamentosStore = create<OrcamentosStore>((set) => ({
+export const useOrcamentosStore = create<OrcamentosState>((set, get) => ({
   orcamentos: [],
-  filtro: {},
-  paginacao: {
-    pagina: 1,
-    itensPorPagina: 10
+  orcamentoAtual: null,
+
+  adicionarOrcamento: (dados: NovoOrcamentoFormData) => {
+    const novoOrcamento: Orcamento = {
+      id: uuidv4(),
+      numero: `ORC-${new Date().getFullYear()}-${String(get().orcamentos.length + 1).padStart(4, '0')}`,
+      status: 'rascunho',
+      data: dados.data.toISOString(),
+      validade: dados.validade.toISOString(),
+      cliente: dados.cliente,
+      prazoEntrega: dados.prazoEntrega,
+      formaPagamento: dados.formaPagamento,
+      observacoes: dados.observacoes,
+      itens: [],
+      subtotal: 0,
+      descontos: 0,
+      impostos: 0,
+      total: 0,
+      custoTotal: 0,
+      margemLucroTotal: 0,
+      margemContribuicao: 0,
+      criadoEm: new Date().toISOString(),
+      atualizadoEm: new Date().toISOString(),
+      versao: 1
+    };
+
+    set((state) => ({
+      orcamentos: [...state.orcamentos, novoOrcamento],
+      orcamentoAtual: novoOrcamento
+    }));
   },
 
-  adicionarOrcamento: async (orcamento) => {
-    try {
-      const novoNumero = await gerarNumeroOrcamento();
-      const novoOrcamento: Orcamento = {
-        id: uuidv4(),
-        numero: novoNumero,
-        ...orcamento,
-        total: orcamento.total || 0,
-        valorTotal: orcamento.total || 0,
-        itens: []
+  atualizarOrcamento: (orcamento: Orcamento) => {
+    set((state) => ({
+      orcamentos: state.orcamentos.map((o) =>
+        o.id === orcamento.id ? { ...orcamento, versao: (o.versao || 1) + 1 } : o
+      ),
+      orcamentoAtual: orcamento.id === state.orcamentoAtual?.id ? orcamento : state.orcamentoAtual
+    }));
+  },
+
+  removerOrcamento: (id: string) => {
+    set((state) => ({
+      orcamentos: state.orcamentos.filter((o) => o.id !== id),
+      orcamentoAtual: state.orcamentoAtual?.id === id ? null : state.orcamentoAtual
+    }));
+  },
+
+  selecionarOrcamento: (id: string) => {
+    set((state) => ({
+      orcamentoAtual: state.orcamentos.find((o) => o.id === id) || null
+    }));
+  },
+
+  adicionarItem: (orcamentoId: string, item: Omit<ItemOrcamento, 'id' | 'orcamentoId'>) => {
+    const novoItem: ItemOrcamento = {
+      id: uuidv4(),
+      orcamentoId,
+      ...item
+    };
+
+    set((state) => ({
+      orcamentos: state.orcamentos.map((o) =>
+        o.id === orcamentoId
+          ? {
+              ...o,
+              itens: [...o.itens, novoItem],
+              atualizadoEm: new Date().toISOString()
+            }
+          : o
+      )
+    }));
+
+    get().calcularTotais(orcamentoId);
+  },
+
+  atualizarItem: (orcamentoId: string, item: ItemOrcamento) => {
+    set((state) => ({
+      orcamentos: state.orcamentos.map((o) =>
+        o.id === orcamentoId
+          ? {
+              ...o,
+              itens: o.itens.map((i) => (i.id === item.id ? item : i)),
+              atualizadoEm: new Date().toISOString()
+            }
+          : o
+      )
+    }));
+
+    get().calcularTotais(orcamentoId);
+  },
+
+  removerItem: (orcamentoId: string, itemId: string) => {
+    set((state) => ({
+      orcamentos: state.orcamentos.map((o) =>
+        o.id === orcamentoId
+          ? {
+              ...o,
+              itens: o.itens.filter((i) => i.id !== itemId),
+              atualizadoEm: new Date().toISOString()
+            }
+          : o
+      )
+    }));
+
+    get().calcularTotais(orcamentoId);
+  },
+
+  calcularTotais: (orcamentoId: string) => {
+    set((state) => {
+      const orcamento = state.orcamentos.find((o) => o.id === orcamentoId);
+      if (!orcamento) return state;
+
+      const subtotal = orcamento.itens.reduce((total, item) => total + item.precoTotal, 0);
+      const custoTotal = orcamento.itens.reduce((total, item) => total + item.custoUnitario * item.quantidade, 0);
+      const margemLucroTotal = subtotal - custoTotal;
+      const margemContribuicao = custoTotal > 0 ? (margemLucroTotal / custoTotal) * 100 : 0;
+
+      const impostos = subtotal * 0.1; // 10% de impostos por padrão
+      const total = subtotal + impostos - orcamento.descontos;
+
+      return {
+        orcamentos: state.orcamentos.map((o) =>
+          o.id === orcamentoId
+            ? {
+                ...o,
+                subtotal,
+                custoTotal,
+                margemLucroTotal,
+                margemContribuicao,
+                impostos,
+                total,
+                atualizadoEm: new Date().toISOString()
+              }
+            : o
+        )
       };
-      set((state) => ({
-        orcamentos: [...state.orcamentos, novoOrcamento],
-      }));
-      return novoOrcamento;
-    } catch (error) {
-      console.error("Erro ao adicionar orçamento:", error);
-      throw error;
-    }
-  },
-
-  atualizarOrcamento: (id, orcamentoAtualizado) => set((state) => ({
-    orcamentos: state.orcamentos.map((orcamento) =>
-      orcamento.id === id ? { ...orcamento, ...orcamentoAtualizado } : orcamento
-    )
-  })),
-
-  removerOrcamento: (id) => set((state) => ({
-    orcamentos: state.orcamentos.filter((orcamento) => orcamento.id !== id)
-  })),
-
-  adicionarItemOrcamento: async (orcamentoId, item) => {
-    try {
-      const novoItem: ItemOrcamento = {
-        id: uuidv4(),
-        orcamentoId,
-        ...item,
-      };
-
-      set((state) => ({
-        orcamentos: state.orcamentos.map((orcamento) =>
-          orcamento.id === orcamentoId
-            ? {
-                ...orcamento,
-                itens: [...orcamento.itens, novoItem],
-              }
-            : orcamento
-        ),
-      }));
-
-      return novoItem;
-    } catch (error) {
-      console.error("Erro ao adicionar item:", error);
-      throw error;
-    }
-  },
-
-  atualizarItemOrcamento: async (orcamentoId, itemId, item) => {
-    try {
-      set((state) => ({
-        orcamentos: state.orcamentos.map((orcamento) =>
-          orcamento.id === orcamentoId
-            ? {
-                ...orcamento,
-                itens: orcamento.itens.map((i) =>
-                  i.id === itemId ? { ...i, ...item } : i
-                ),
-              }
-            : orcamento
-        ),
-      }));
-    } catch (error) {
-      console.error("Erro ao atualizar item:", error);
-      throw error;
-    }
-  },
-
-  removerItemOrcamento: async (orcamentoId, itemId) => {
-    try {
-      set((state) => ({
-        orcamentos: state.orcamentos.map((orcamento) =>
-          orcamento.id === orcamentoId
-            ? {
-                ...orcamento,
-                itens: orcamento.itens.filter((item) => item.id !== itemId),
-              }
-            : orcamento
-        ),
-      }));
-    } catch (error) {
-      console.error("Erro ao remover item:", error);
-      throw error;
-    }
-  },
-
-  setFiltro: (novoFiltro) => set({ filtro: novoFiltro }),
-
-  setPaginacao: (novaPaginacao) => set({ paginacao: novaPaginacao })
+    });
+  }
 }));
