@@ -12,12 +12,22 @@ export default defineConfig({
   },
   build: {
     outDir: "dist",
-    sourcemap: false,
+    sourcemap: true,
     rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, "index.html"),
+      },
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': ['@radix-ui/react-dropdown-menu', '@radix-ui/react-dialog', '@radix-ui/react-toast'],
+        manualChunks: (id) => {
+          if (id.includes("node_modules")) {
+            if (id.includes("@radix-ui")) {
+              return "vendor_radix";
+            }
+            if (id.includes("react")) {
+              return "vendor_react";
+            }
+            return "vendor";
+          }
         },
       },
     },
@@ -25,6 +35,9 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    host: true
-  }
+    host: true,
+  },
+  preview: {
+    port: 3000,
+  },
 });
