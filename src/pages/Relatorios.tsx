@@ -1,98 +1,129 @@
-import { useState } from 'react';
-import { RelatorioService } from '@/services/RelatorioService';
-import { FiltrosRelatorio } from '@/types/relatorio';
-import { RelatorioForm } from '@/components/Relatorios/RelatorioForm';
-import { RelatorioPreview } from '@/components/Relatorios/RelatorioPreview';
-import { toast } from 'sonner';
+import React from 'react';
+import { useOrcamentosStore } from '@/stores/orcamentosStore';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FileText, Download, Printer } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
-export default function Relatorios() {
-    const [loading, setLoading] = useState(false);
-    const [dados, setDados] = useState<any>(null);
-    const [filtrosAtuais, setFiltrosAtuais] = useState<FiltrosRelatorio | null>(null);
+export function Relatorios() {
+  const { orcamentos } = useOrcamentosStore();
 
-    const handleGerarRelatorio = async (filtros: FiltrosRelatorio) => {
-        try {
-            setLoading(true);
-            const blob = await RelatorioService.gerarRelatorio(filtros);
-            
-            // Atualiza o estado para mostrar a prévia
-            setDados(await RelatorioService.gerarDadosRelatorio(filtros));
-            setFiltrosAtuais(filtros);
-            
-            // Cria um URL para o blob
-            const url = window.URL.createObjectURL(blob);
-            
-            // Cria um link temporário e simula o clique
-            const link = document.createElement('a');
-            link.href = url;
-            
-            // Define o nome do arquivo baseado no tipo e formato
-            const timestamp = new Date().toISOString().split('T')[0];
-            const extensao = filtros.formato === 'excel' ? 'xlsx' : filtros.formato;
-            link.download = `relatorio_${filtros.tipo}_${timestamp}.${extensao}`;
-            
-            document.body.appendChild(link);
-            link.click();
-            
-            // Limpa
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-            
-            toast.success('Relatório gerado com sucesso');
-        } catch (error) {
-            toast.error('Erro ao gerar relatório');
-        } finally {
-            setLoading(false);
-        }
-    };
+  // Cálculo de métricas mensais
+  const metricasMensais = orcamentos.reduce((acc, orc) => {
+    const data = new Date(orc.data);
+    const mes = data.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+    
+    if (!acc[mes]) {
+      acc[mes] = {
+        total: 0,
+        quantidade: 0,
+        aprovados: 0,
+        recusados: 0,
+      };
+    }
+    
+    acc[mes].total += orc.valorTotal;
+    acc[mes].quantidade++;
+    if (orc.status === 'aprovado') acc[mes].aprovados++;
+    if (orc.status === 'recusado') acc[mes].recusados++;
+    
+    return acc;
+  }, {} as Record<string, any>);
 
-    const handlePrevisualizar = async (filtros: FiltrosRelatorio) => {
-        try {
-            setLoading(true);
-            const dados = await RelatorioService.gerarDadosRelatorio(filtros);
-            setDados(dados);
-            setFiltrosAtuais(filtros);
-            toast.success('Prévia gerada com sucesso');
-        } catch (error) {
-            toast.error('Erro ao gerar prévia do relatório');
-        } finally {
-            setLoading(false);
-        }
-    };
+  // Converte para array e ordena por data
+  const relatorioMensal = Object.entries(metricasMensais)
+    .map(([mes, dados]) => ({
+      mes,
+      ...dados,
+      taxaAprovacao: (dados.aprovados / dados.quantidade * 100).toFixed(1)
+    }))
+    .sort((a, b) => new Date(b.mes) - new Date(a.mes));
 
-    return (
-        <div className="container mx-auto py-6">
-            <h1 className="text-2xl font-bold mb-6">Relatórios</h1>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                    <RelatorioForm 
-                        onSubmit={handleGerarRelatorio} 
-                        onPreview={handlePrevisualizar}
-                        loading={loading} 
-                    />
-                </div>
-                
-                <div>
-                    {dados && filtrosAtuais && (
-                        <div className="space-y-6">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-semibold">Prévia do Relatório</h2>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => handleGerarRelatorio(filtrosAtuais)}
-                                    disabled={loading}
-                                >
-                                    Baixar Relatório
-                                </Button>
-                            </div>
-                            <RelatorioPreview dados={dados} filtros={filtrosAtuais} />
-                        </div>
-                    )}
-                </div>
-            </div>
+  const exportarPDF = () => {
+    // Implementar exportação para PDF
+    console.log('Exportar PDF');
+  };
+
+  const exportarCSV = () => {
+    // Implementar exportação para CSV
+    console.log('Exportar CSV');
+  };
+
+  const imprimir = () => {
+    window.print();
+  };
+
+  return (
+    <div className="container mx-auto py-8">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">Relatórios</h1>
+          <p className="text-gray-600 mt-1">
+            Análise mensal de orçamentos
+          </p>
         </div>
-    );
+        <div className="space-x-2">
+          <Button onClick={exportarPDF} variant="outline">
+            <FileText className="h-4 w-4 mr-2" />
+            Exportar PDF
+          </Button>
+          <Button onClick={exportarCSV} variant="outline">
+            <Download className="h-4 w-4 mr-2" />
+            Exportar CSV
+          </Button>
+          <Button onClick={imprimir} variant="outline">
+            <Printer className="h-4 w-4 mr-2" />
+            Imprimir
+          </Button>
+        </div>
+      </div>
+
+      <Card className="overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Período</TableHead>
+              <TableHead>Quantidade</TableHead>
+              <TableHead>Aprovados</TableHead>
+              <TableHead>Recusados</TableHead>
+              <TableHead>Taxa de Aprovação</TableHead>
+              <TableHead className="text-right">Valor Total</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {relatorioMensal.map((relatorio) => (
+              <TableRow key={relatorio.mes}>
+                <TableCell className="font-medium">
+                  {relatorio.mes}
+                </TableCell>
+                <TableCell>{relatorio.quantidade}</TableCell>
+                <TableCell className="text-green-600">
+                  {relatorio.aprovados}
+                </TableCell>
+                <TableCell className="text-red-600">
+                  {relatorio.recusados}
+                </TableCell>
+                <TableCell>
+                  {relatorio.taxaAprovacao}%
+                </TableCell>
+                <TableCell className="text-right">
+                  {new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                  }).format(relatorio.total)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
+  );
 }

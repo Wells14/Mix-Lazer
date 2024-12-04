@@ -1,163 +1,106 @@
-import { useState, useEffect } from 'react';
-import { VendaService } from '@/services/VendaService';
-import { Venda, VendaFiltros } from '@/types/venda';
-import { VendaList } from '@/components/Vendas/VendaList';
-import { VendaDetalhes } from '@/components/Vendas/VendaDetalhes';
-import { Button } from '@/components/ui/button';
+import React from 'react';
+import { Card } from '@/components/ui/card';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
-export default function Vendas() {
-    const [loading, setLoading] = useState(true);
-    const [vendas, setVendas] = useState<Venda[]>([]);
-    const [filtros, setFiltros] = useState<VendaFiltros>({
-        ordenacao: 'data',
-        ordem: 'desc',
-    });
-    const [vendaSelecionada, setVendaSelecionada] = useState<Venda | null>(null);
-    const [dialogOpen, setDialogOpen] = useState(false);
+const vendasRecentes = [
+  {
+    id: '1',
+    cliente: 'João Silva',
+    produto: 'Banner 2x1m',
+    valor: 150.00,
+    status: 'Concluída',
+    data: '2024-01-15',
+  },
+  {
+    id: '2',
+    cliente: 'Maria Santos',
+    produto: 'Adesivos 10x10cm (100un)',
+    valor: 80.00,
+    status: 'Em produção',
+    data: '2024-01-14',
+  },
+  {
+    id: '3',
+    cliente: 'Pedro Oliveira',
+    produto: 'Cartão de Visita (1000un)',
+    valor: 120.00,
+    status: 'Aguardando pagamento',
+    data: '2024-01-13',
+  },
+];
 
-    const carregarVendas = async () => {
-        try {
-            setLoading(true);
-            const data = await VendaService.listarVendas(filtros);
-            setVendas(data);
-        } catch (error) {
-            toast.error('Erro ao carregar vendas');
-        } finally {
-            setLoading(false);
-        }
-    };
+export function Vendas() {
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-3xl font-bold">Vendas</h2>
+      </div>
 
-    useEffect(() => {
-        carregarVendas();
-    }, [filtros]);
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-2">Vendas Hoje</h3>
+          <p className="text-3xl font-bold">12</p>
+          <p className="text-sm text-gray-500">+2 em relação a ontem</p>
+        </Card>
 
-    const handleViewVenda = (venda: Venda) => {
-        setVendaSelecionada(venda);
-        setDialogOpen(true);
-    };
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-2">Faturamento Hoje</h3>
+          <p className="text-3xl font-bold">R$ 1.250,00</p>
+          <p className="text-sm text-gray-500">+15% em relação a ontem</p>
+        </Card>
 
-    const handleUpdateStatus = async (id: string, status: 'aprovada' | 'cancelada') => {
-        try {
-            await VendaService.atualizarStatus(id, status);
-            toast.success(`Venda ${status === 'aprovada' ? 'aprovada' : 'cancelada'} com sucesso`);
-            carregarVendas();
-        } catch (error) {
-            toast.error('Erro ao atualizar status da venda');
-        }
-    };
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-2">Ticket Médio</h3>
+          <p className="text-3xl font-bold">R$ 104,16</p>
+          <p className="text-sm text-gray-500">+5% em relação a ontem</p>
+        </Card>
 
-    return (
-        <div className="container mx-auto py-6 space-y-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold">Histórico de Vendas</h1>
-                <Button onClick={carregarVendas}>
-                    Atualizar
-                </Button>
-            </div>
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-2">Taxa de Conversão</h3>
+          <p className="text-3xl font-bold">68%</p>
+          <p className="text-sm text-gray-500">+3% em relação a ontem</p>
+        </Card>
+      </div>
 
-            <div className="flex gap-4">
-                <Input
-                    type="date"
-                    value={filtros.dataInicio}
-                    onChange={(e) =>
-                        setFiltros({ ...filtros, dataInicio: e.target.value })
-                    }
-                    className="w-[180px]"
-                />
-
-                <Input
-                    type="date"
-                    value={filtros.dataFim}
-                    onChange={(e) =>
-                        setFiltros({ ...filtros, dataFim: e.target.value })
-                    }
-                    className="w-[180px]"
-                />
-
-                <Select
-                    value={filtros.status}
-                    onValueChange={(value: any) =>
-                        setFiltros({ ...filtros, status: value })
-                    }
-                >
-                    <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="">Todos</SelectItem>
-                        <SelectItem value="pendente">Pendente</SelectItem>
-                        <SelectItem value="aprovada">Aprovada</SelectItem>
-                        <SelectItem value="cancelada">Cancelada</SelectItem>
-                    </SelectContent>
-                </Select>
-
-                <Select
-                    value={filtros.ordenacao}
-                    onValueChange={(value: any) =>
-                        setFiltros({ ...filtros, ordenacao: value })
-                    }
-                >
-                    <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Ordenar por" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="data">Data</SelectItem>
-                        <SelectItem value="valor">Valor</SelectItem>
-                        <SelectItem value="cliente">Cliente</SelectItem>
-                    </SelectContent>
-                </Select>
-
-                <Select
-                    value={filtros.ordem}
-                    onValueChange={(value: any) =>
-                        setFiltros({ ...filtros, ordem: value })
-                    }
-                >
-                    <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Ordem" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="asc">Crescente</SelectItem>
-                        <SelectItem value="desc">Decrescente</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-
-            {loading ? (
-                <div className="text-center">Carregando...</div>
-            ) : (
-                <VendaList
-                    vendas={vendas}
-                    onView={handleViewVenda}
-                    onUpdateStatus={handleUpdateStatus}
-                />
-            )}
-
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogContent className="max-w-3xl">
-                    <DialogHeader>
-                        <DialogTitle>Detalhes da Venda</DialogTitle>
-                    </DialogHeader>
-                    {vendaSelecionada && (
-                        <VendaDetalhes venda={vendaSelecionada} />
-                    )}
-                </DialogContent>
-            </Dialog>
-        </div>
-    );
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4">Vendas Recentes</h3>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Produto</TableHead>
+              <TableHead>Valor</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Data</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {vendasRecentes.map((venda) => (
+              <TableRow key={venda.id}>
+                <TableCell>{venda.id}</TableCell>
+                <TableCell>{venda.cliente}</TableCell>
+                <TableCell>{venda.produto}</TableCell>
+                <TableCell>
+                  {new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                  }).format(venda.valor)}
+                </TableCell>
+                <TableCell>{venda.status}</TableCell>
+                <TableCell>{new Date(venda.data).toLocaleDateString('pt-BR')}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
+  );
 }

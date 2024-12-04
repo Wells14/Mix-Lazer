@@ -1,7 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
+ 
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -65,7 +65,7 @@
     --ring: 212.7 26.8% 83.9%;
   }
 }
-
+ 
 @layer base {
   * {
     @apply border-border;
@@ -73,41 +73,4 @@
   body {
     @apply bg-background text-foreground;
   }
-}
-
-/* Responsividade */
-@media (max-width: 640px) {
-  .container {
-    @apply px-4;
-  }
-}
-
-@media (min-width: 641px) and (max-width: 768px) {
-  .container {
-    @apply px-6;
-  }
-}
-
-@media (min-width: 769px) {
-  .container {
-    @apply px-8;
-  }
-}
-
-/* Scrollbar personalizada */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #555;
 }

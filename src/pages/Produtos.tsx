@@ -1,250 +1,127 @@
-import { useState, useEffect } from 'react';
-import { 
-    Table, 
-    TableBody, 
-    TableCell, 
-    TableHead, 
-    TableHeader, 
-    TableRow 
-} from '@/components/ui/table';
+import React from 'react';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { 
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { ProdutoForm } from '@/components/Produtos/ProdutoForm';
-import { Produto, ProdutoFiltros } from '@/types/produto';
-import { ProdutoService } from '@/services/ProdutoService';
-import { toast } from 'sonner';
-import { 
-    Search,
-    Plus,
-    MoreVertical,
-    Edit2,
-    Trash2,
-    Package,
-    AlertTriangle
-} from 'lucide-react';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { Plus } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from '@/components/ui/badge';
 
-export default function Produtos() {
-    const [produtos, setProdutos] = useState<Produto[]>([]);
-    const [categorias, setCategorias] = useState<string[]>([]);
-    const [filtros, setFiltros] = useState<ProdutoFiltros>({
-        ordenacao: 'nome',
-        ordem: 'asc',
-        apenasAtivos: true
-    });
-    const [busca, setBusca] = useState('');
-    const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | undefined>();
-    const [showForm, setShowForm] = useState(false);
-    const [loading, setLoading] = useState(false);
+const produtos = [
+  {
+    id: '1',
+    nome: 'Banner 440g',
+    categoria: 'Comunicação Visual',
+    preco: 45.00,
+    unidade: 'm²',
+    status: 'ativo',
+  },
+  {
+    id: '2',
+    nome: 'Adesivo Brilho',
+    categoria: 'Comunicação Visual',
+    preco: 35.00,
+    unidade: 'm²',
+    status: 'ativo',
+  },
+  {
+    id: '3',
+    nome: 'Cartão de Visita',
+    categoria: 'Impressão Digital',
+    preco: 90.00,
+    unidade: '1000un',
+    status: 'ativo',
+  },
+  {
+    id: '4',
+    nome: 'Panfleto A5',
+    categoria: 'Offset',
+    preco: 280.00,
+    unidade: '1000un',
+    status: 'inativo',
+  },
+];
 
-    const carregarProdutos = async () => {
-        try {
-            setLoading(true);
-            const data = await ProdutoService.listarProdutos({
-                ...filtros,
-                busca
-            });
-            setProdutos(data);
-        } catch (error) {
-            toast.error('Erro ao carregar produtos');
-        } finally {
-            setLoading(false);
-        }
-    };
+export function Produtos() {
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-3xl font-bold">Produtos</h2>
+        <Button>
+          <Plus className="mr-2 h-4 w-4" />
+          Novo Produto
+        </Button>
+      </div>
 
-    const carregarCategorias = async () => {
-        try {
-            const data = await ProdutoService.listarCategorias();
-            setCategorias(data);
-        } catch (error) {
-            toast.error('Erro ao carregar categorias');
-        }
-    };
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-2">Total de Produtos</h3>
+          <p className="text-3xl font-bold">45</p>
+          <p className="text-sm text-gray-500">Em 8 categorias</p>
+        </Card>
 
-    useEffect(() => {
-        carregarProdutos();
-        carregarCategorias();
-    }, [filtros, busca]);
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-2">Produtos Ativos</h3>
+          <p className="text-3xl font-bold text-green-600">38</p>
+          <p className="text-sm text-gray-500">84% do total</p>
+        </Card>
 
-    const handleExcluir = async (produto: Produto) => {
-        if (!confirm(`Deseja realmente excluir o produto ${produto.nome}?`)) {
-            return;
-        }
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-2">Mais Vendidos</h3>
+          <p className="text-3xl font-bold">12</p>
+          <p className="text-sm text-gray-500">Produtos em destaque</p>
+        </Card>
 
-        try {
-            await ProdutoService.excluirProduto(produto.id);
-            toast.success('Produto excluído com sucesso!');
-            carregarProdutos();
-        } catch (error) {
-            toast.error('Erro ao excluir produto');
-        }
-    };
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-2">Sem Estoque</h3>
+          <p className="text-3xl font-bold text-red-600">3</p>
+          <p className="text-sm text-gray-500">Necessitam reposição</p>
+        </Card>
+      </div>
 
-    return (
-        <div className="container mx-auto py-6 space-y-4">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold">Produtos</h1>
-                <Button onClick={() => {
-                    setProdutoSelecionado(undefined);
-                    setShowForm(true);
-                }}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Novo Produto
-                </Button>
-            </div>
-
-            <div className="flex items-center space-x-4">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
-                    <Input
-                        placeholder="Buscar produtos..."
-                        value={busca}
-                        onChange={(e) => setBusca(e.target.value)}
-                        className="pl-10"
-                    />
-                </div>
-                
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline">
-                            {filtros.categoria || 'Todas Categorias'} ▼
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => setFiltros({ ...filtros, categoria: undefined })}>
-                            Todas Categorias
-                        </DropdownMenuItem>
-                        {categorias.map((categoria) => (
-                            <DropdownMenuItem 
-                                key={categoria}
-                                onClick={() => setFiltros({ ...filtros, categoria })}
-                            >
-                                {categoria}
-                            </DropdownMenuItem>
-                        ))}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-
-                <Button
-                    variant={filtros.apenasAtivos ? 'default' : 'outline'}
-                    onClick={() => setFiltros({ ...filtros, apenasAtivos: !filtros.apenasAtivos })}
-                >
-                    Apenas Ativos
-                </Button>
-
-                <Button
-                    variant={filtros.estoqueMinimo ? 'default' : 'outline'}
-                    onClick={() => setFiltros({ ...filtros, estoqueMinimo: !filtros.estoqueMinimo })}
-                >
-                    Estoque Mínimo
-                </Button>
-            </div>
-
-            <div className="border rounded-lg">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Produto</TableHead>
-                            <TableHead>Categoria</TableHead>
-                            <TableHead>Preço</TableHead>
-                            <TableHead>Estoque</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="w-[100px]">Ações</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {loading ? (
-                            <TableRow>
-                                <TableCell colSpan={6} className="text-center py-8">
-                                    Carregando...
-                                </TableCell>
-                            </TableRow>
-                        ) : produtos.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={6} className="text-center py-8">
-                                    Nenhum produto encontrado
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            produtos.map((produto) => (
-                                <TableRow key={produto.id}>
-                                    <TableCell>
-                                        <div>
-                                            <p className="font-medium">{produto.nome}</p>
-                                            <p className="text-sm text-gray-500">{produto.codigo}</p>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>{produto.categoria}</TableCell>
-                                    <TableCell>{formatCurrency(produto.precoVenda)}</TableCell>
-                                    <TableCell>
-                                        <div className="space-y-1">
-                                            <div className="flex items-center">
-                                                <Package className="w-4 h-4 mr-2" />
-                                                {produto.estoque} unidades
-                                            </div>
-                                            {produto.estoque <= produto.estoqueMinimo && (
-                                                <div className="flex items-center text-amber-500">
-                                                    <AlertTriangle className="w-4 h-4 mr-1" />
-                                                    Estoque baixo
-                                                </div>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <span className={`px-2 py-1 rounded-full text-xs ${
-                                            produto.ativo 
-                                                ? 'bg-green-100 text-green-800'
-                                                : 'bg-red-100 text-red-800'
-                                        }`}>
-                                            {produto.ativo ? 'Ativo' : 'Inativo'}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon">
-                                                    <MoreVertical className="w-4 h-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem
-                                                    onClick={() => {
-                                                        setProdutoSelecionado(produto);
-                                                        setShowForm(true);
-                                                    }}
-                                                >
-                                                    <Edit2 className="w-4 h-4 mr-2" />
-                                                    Editar
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    className="text-red-600"
-                                                    onClick={() => handleExcluir(produto)}
-                                                >
-                                                    <Trash2 className="w-4 h-4 mr-2" />
-                                                    Excluir
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
-
-            <ProdutoForm
-                produto={produtoSelecionado}
-                isOpen={showForm}
-                onClose={() => setShowForm(false)}
-                onSave={carregarProdutos}
-            />
-        </div>
-    );
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4">Lista de Produtos</h3>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>Produto</TableHead>
+              <TableHead>Categoria</TableHead>
+              <TableHead>Preço</TableHead>
+              <TableHead>Unidade</TableHead>
+              <TableHead>Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {produtos.map((produto) => (
+              <TableRow key={produto.id}>
+                <TableCell>{produto.id}</TableCell>
+                <TableCell>{produto.nome}</TableCell>
+                <TableCell>{produto.categoria}</TableCell>
+                <TableCell>
+                  {new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                  }).format(produto.preco)}
+                </TableCell>
+                <TableCell>{produto.unidade}</TableCell>
+                <TableCell>
+                  <Badge
+                    variant={produto.status === 'ativo' ? 'success' : 'secondary'}
+                  >
+                    {produto.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
+  );
 }

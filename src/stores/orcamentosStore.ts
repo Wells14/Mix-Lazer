@@ -1,138 +1,108 @@
 import { create } from 'zustand';
-import { Orcamento, ItemOrcamento } from '@/types/orcamento';
-import { v4 as uuidv4 } from 'uuid';
+import { persist } from 'zustand/middleware';
+import type { Orcamento } from '@/types/orcamento';
+import type { NovoOrcamentoFormData } from '@/types/novoOrcamento';
+import { useNotificacoesStore } from '@/services/notificacoes';
 
 interface OrcamentosStore {
   orcamentos: Orcamento[];
-  filtro: {
-    cliente?: string;
-    status?: string;
-    dataInicio?: Date;
-    dataFim?: Date;
-  };
-  paginacao: {
-    pagina: number;
-    itensPorPagina: number;
-  };
-  adicionarOrcamento: (orcamento: Omit<Orcamento, 'id' | 'numero'>) => Promise<Orcamento>;
-  atualizarOrcamento: (id: string, orcamento: Orcamento) => void;
+  adicionarOrcamento: (dados: NovoOrcamentoFormData) => void;
+  atualizarOrcamento: (orcamento: Orcamento) => void;
   removerOrcamento: (id: string) => void;
-  adicionarItemOrcamento: (orcamentoId: string, item: Omit<ItemOrcamento, 'id' | 'orcamentoId'>) => Promise<ItemOrcamento>;
-  atualizarItemOrcamento: (orcamentoId: string, itemId: string, item: Partial<ItemOrcamento>) => void;
-  removerItemOrcamento: (orcamentoId: string, itemId: string) => void;
-  setFiltro: (filtro: OrcamentosStore['filtro']) => void;
-  setPaginacao: (paginacao: OrcamentosStore['paginacao']) => void;
 }
 
-const gerarNumeroOrcamento = async () => {
-  // Implementação para gerar número de orçamento
-  return '000001';
-};
-
-export const useOrcamentosStore = create<OrcamentosStore>((set) => ({
-  orcamentos: [],
-  filtro: {},
-  paginacao: {
-    pagina: 1,
-    itensPorPagina: 10
+// Dados iniciais para demonstração
+const dadosIniciais: Orcamento[] = [
+  {
+    id: '1',
+    cliente: {
+      nome: 'João Silva',
+      email: 'joao@email.com',
+      telefone: '(11) 99999-9999'
+    },
+    data: new Date('2024-02-10'),
+    status: 'pendente',
+    itens: [
+      {
+        id: '1',
+        descricao: 'Desenvolvimento de Website',
+        quantidade: 1,
+        valorUnitario: 5000,
+        valorTotal: 5000
+      }
+    ],
+    valorTotal: 5000,
+    observacoes: 'Website institucional com 5 páginas'
   },
+  {
+    id: '2',
+    cliente: {
+      nome: 'Maria Santos',
+      email: 'maria@email.com',
+      telefone: '(11) 88888-8888'
+    },
+    data: new Date('2024-02-09'),
+    status: 'aprovado',
+    itens: [
+      {
+        id: '1',
+        descricao: 'Manutenção Mensal',
+        quantidade: 1,
+        valorUnitario: 1500,
+        valorTotal: 1500
+      }
+    ],
+    valorTotal: 1500,
+    observacoes: 'Manutenção mensal do sistema'
+  }
+];
 
-  adicionarOrcamento: async (orcamento) => {
-    try {
-      const novoNumero = await gerarNumeroOrcamento();
-      const novoOrcamento: Orcamento = {
-        id: uuidv4(),
-        numero: novoNumero,
-        ...orcamento,
-        total: orcamento.total || 0,
-        valorTotal: orcamento.total || 0,
-        itens: []
-      };
-      set((state) => ({
-        orcamentos: [...state.orcamentos, novoOrcamento],
-      }));
-      return novoOrcamento;
-    } catch (error) {
-      console.error("Erro ao adicionar orçamento:", error);
-      throw error;
+export const useOrcamentosStore = create<OrcamentosStore>()(
+  persist(
+    (set) => ({
+      orcamentos: dadosIniciais,
+      adicionarOrcamento: (dados) => {
+        const { adicionarNotificacao } = useNotificacoesStore.getState();
+        set((state) => {
+          const novoOrcamento = {
+            id: crypto.randomUUID(),
+            ...dados,
+            data: new Date(),
+            status: 'pendente',
+            valorTotal: dados.itens.reduce((total, item) => total + item.valorTotal, 0)
+          };
+          adicionarNotificacao('success', `Novo orçamento criado para ${dados.cliente.nome}`);
+          return { orcamentos: [...state.orcamentos, novoOrcamento] };
+        });
+      },
+
+      atualizarOrcamento: (orcamentoAtualizado) => {
+        const { adicionarNotificacao } = useNotificacoesStore.getState();
+        set((state) => {
+          adicionarNotificacao('info', `Orçamento ${orcamentoAtualizado.id.substring(0, 8)} atualizado`);
+          return {
+            orcamentos: state.orcamentos.map(orcamento => 
+              orcamento.id === orcamentoAtualizado.id ? orcamentoAtualizado : orcamento
+            )
+          };
+        });
+      },
+
+      removerOrcamento: (id) => {
+        const { adicionarNotificacao } = useNotificacoesStore.getState();
+        set((state) => {
+          const orcamento = state.orcamentos.find(o => o.id === id);
+          if (orcamento) {
+            adicionarNotificacao('warning', `Orçamento ${id.substring(0, 8)} removido`);
+          }
+          return {
+            orcamentos: state.orcamentos.filter(orcamento => orcamento.id !== id)
+          };
+        });
+      },
+    }),
+    {
+      name: 'orcamentos-storage'
     }
-  },
-
-  atualizarOrcamento: (id, orcamentoAtualizado) => set((state) => ({
-    orcamentos: state.orcamentos.map((orcamento) =>
-      orcamento.id === id ? { ...orcamento, ...orcamentoAtualizado } : orcamento
-    )
-  })),
-
-  removerOrcamento: (id) => set((state) => ({
-    orcamentos: state.orcamentos.filter((orcamento) => orcamento.id !== id)
-  })),
-
-  adicionarItemOrcamento: async (orcamentoId, item) => {
-    try {
-      const novoItem: ItemOrcamento = {
-        id: uuidv4(),
-        orcamentoId,
-        ...item,
-      };
-
-      set((state) => ({
-        orcamentos: state.orcamentos.map((orcamento) =>
-          orcamento.id === orcamentoId
-            ? {
-                ...orcamento,
-                itens: [...orcamento.itens, novoItem],
-              }
-            : orcamento
-        ),
-      }));
-
-      return novoItem;
-    } catch (error) {
-      console.error("Erro ao adicionar item:", error);
-      throw error;
-    }
-  },
-
-  atualizarItemOrcamento: async (orcamentoId, itemId, item) => {
-    try {
-      set((state) => ({
-        orcamentos: state.orcamentos.map((orcamento) =>
-          orcamento.id === orcamentoId
-            ? {
-                ...orcamento,
-                itens: orcamento.itens.map((i) =>
-                  i.id === itemId ? { ...i, ...item } : i
-                ),
-              }
-            : orcamento
-        ),
-      }));
-    } catch (error) {
-      console.error("Erro ao atualizar item:", error);
-      throw error;
-    }
-  },
-
-  removerItemOrcamento: async (orcamentoId, itemId) => {
-    try {
-      set((state) => ({
-        orcamentos: state.orcamentos.map((orcamento) =>
-          orcamento.id === orcamentoId
-            ? {
-                ...orcamento,
-                itens: orcamento.itens.filter((item) => item.id !== itemId),
-              }
-            : orcamento
-        ),
-      }));
-    } catch (error) {
-      console.error("Erro ao remover item:", error);
-      throw error;
-    }
-  },
-
-  setFiltro: (novoFiltro) => set({ filtro: novoFiltro }),
-
-  setPaginacao: (novaPaginacao) => set({ paginacao: novaPaginacao })
-}));
+  )
+);

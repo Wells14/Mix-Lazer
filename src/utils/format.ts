@@ -1,16 +1,19 @@
-import { format, addDays } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+const format = {
+  currency: (value: number): string => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  },
 
-export const formatDate = (date: Date | string) => {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  return format(d, 'dd/MM/yyyy', { locale: ptBR });
+  date: (date: Date | string): string => {
+    const d = date instanceof Date ? date : new Date(date);
+    return new Intl.DateTimeFormat('pt-BR').format(d);
+  },
+
+  shortId: (id: string): string => {
+    return id.substring(0, 8);
+  }
 };
 
-export const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value);
-};
-
-export { addDays };
+export { format };
