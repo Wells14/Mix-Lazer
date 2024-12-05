@@ -1,7 +1,9 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
-import { Folder, Palette, Package, Truck, X, CheckCircle, Timer } from 'lucide-react';
+import { Folder, Palette, Package, Truck, X, CheckCircle, Timer, DollarSign, Users, ShoppingCart } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useDashboard } from '@/contexts/DashboardContext';
 
 const dadosPedidos = [
   { mes: 'Jan', Offset: 0, 'Com. Visual': 0 },
@@ -34,8 +36,79 @@ const dadosOrcamentos = [
 ];
 
 export function Dashboard() {
+  const { 
+    faturamentoMensal, 
+    clientesAtivos, 
+    pedidosEmAberto, 
+    prazoMedio, 
+    pedidosRecentes 
+  } = useDashboard();
+
+  const handleCardClick = (metricName: string, value: number) => {
+    // Track with Amplitude
+    // amplitude.getInstance().logEvent('Metric Click', {
+    //   metric: metricName,
+    //   value
+    // });
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
+      {/* Cards de Métricas */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow" 
+              onClick={() => handleCardClick('Faturamento Mensal', faturamentoMensal)}>
+          <div className="flex items-center space-x-4">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <DollarSign className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Faturamento Mensal</p>
+              <h3 className="text-2xl font-bold">R$ {faturamentoMensal.toLocaleString()}</h3>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow" 
+              onClick={() => handleCardClick('Clientes Ativos', clientesAtivos)}>
+          <div className="flex items-center space-x-4">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Users className="w-6 h-6 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Clientes Ativos</p>
+              <h3 className="text-2xl font-bold">{clientesAtivos}</h3>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow" 
+              onClick={() => handleCardClick('Pedidos em Aberto', pedidosEmAberto)}>
+          <div className="flex items-center space-x-4">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <ShoppingCart className="w-6 h-6 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Pedidos em Aberto</p>
+              <h3 className="text-2xl font-bold">{pedidosEmAberto}</h3>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4 cursor-pointer hover:shadow-lg transition-shadow" 
+              onClick={() => handleCardClick('Prazo Médio', prazoMedio)}>
+          <div className="flex items-center space-x-4">
+            <div className="p-2 bg-yellow-100 rounded-lg">
+              <Timer className="w-6 h-6 text-yellow-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Prazo Médio</p>
+              <h3 className="text-2xl font-bold">{prazoMedio} dias</h3>
+            </div>
+          </div>
+        </Card>
+      </div>
+
       {/* Margem de Contribuição */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="p-6">
@@ -76,6 +149,43 @@ export function Dashboard() {
           </div>
         </Card>
       </div>
+
+      {/* Tabela de Pedidos Recentes */}
+      <Card className="p-4">
+        <h2 className="text-xl font-bold mb-4">Pedidos Recentes</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left p-2">ID</th>
+                <th className="text-left p-2">Cliente</th>
+                <th className="text-left p-2">Produto</th>
+                <th className="text-right p-2">Valor</th>
+                <th className="text-center p-2">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pedidosRecentes.map((pedido) => (
+                <tr key={pedido.id} className="border-b hover:bg-gray-50">
+                  <td className="p-2">{pedido.id}</td>
+                  <td className="p-2">{pedido.cliente}</td>
+                  <td className="p-2">{pedido.produto}</td>
+                  <td className="p-2 text-right">R$ {pedido.valor.toFixed(2)}</td>
+                  <td className="p-2">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                      ${pedido.status === 'Concluído' ? 'bg-green-100 text-green-800' :
+                        pedido.status === 'Em Produção' ? 'bg-blue-100 text-blue-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                      {pedido.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
       {/* Status Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">

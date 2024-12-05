@@ -1,129 +1,132 @@
-import React from 'react';
-import { useOrcamentosStore } from '@/stores/orcamentosStore';
+import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
+import { RichTextEditor } from '@/components/RichTextEditor';
+import { ExcelExport } from '@/components/ExcelExport';
+import { PDFGenerator } from '@/components/PDFGenerator';
 import { Button } from '@/components/ui/button';
-import { FileText, Download, Printer } from 'lucide-react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+// Dados de exemplo
+const dadosVendas = [
+  { data: '2024-01-01', cliente: 'João Silva', produto: 'Banner 3x2m', valor: 450.00 },
+  { data: '2024-01-02', cliente: 'Maria Santos', produto: 'Adesivos', valor: 280.00 },
+  { data: '2024-01-03', cliente: 'Pedro Costa', produto: 'Faixa 5m', valor: 650.00 },
+];
 
 export function Relatorios() {
-  const { orcamentos } = useOrcamentosStore();
+  const [observacoes, setObservacoes] = useState('');
 
-  // Cálculo de métricas mensais
-  const metricasMensais = orcamentos.reduce((acc, orc) => {
-    const data = new Date(orc.data);
-    const mes = data.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
-    
-    if (!acc[mes]) {
-      acc[mes] = {
-        total: 0,
-        quantidade: 0,
-        aprovados: 0,
-        recusados: 0,
-      };
+  // Configuração do gráfico
+  const chartData = {
+    labels: dadosVendas.map(d => d.data),
+    datasets: [{
+      label: 'Vendas',
+      data: dadosVendas.map(d => d.valor),
+      borderColor: 'rgb(75, 192, 192)',
+      tension: 0.1
+    }]
+  };
+
+  // Renderiza o gráfico quando o componente montar
+  React.useEffect(() => {
+    if (window.Chart) {
+      const ctx = document.getElementById('vendasChart') as HTMLCanvasElement;
+      if (ctx) {
+        new window.Chart(ctx, {
+          type: 'line',
+          data: chartData,
+          options: {
+            responsive: true,
+            plugins: {
+              title: {
+                display: true,
+                text: 'Vendas por Data'
+              }
+            }
+          }
+        });
+      }
     }
-    
-    acc[mes].total += orc.valorTotal;
-    acc[mes].quantidade++;
-    if (orc.status === 'aprovado') acc[mes].aprovados++;
-    if (orc.status === 'recusado') acc[mes].recusados++;
-    
-    return acc;
-  }, {} as Record<string, any>);
-
-  // Converte para array e ordena por data
-  const relatorioMensal = Object.entries(metricasMensais)
-    .map(([mes, dados]) => ({
-      mes,
-      ...dados,
-      taxaAprovacao: (dados.aprovados / dados.quantidade * 100).toFixed(1)
-    }))
-    .sort((a, b) => new Date(b.mes) - new Date(a.mes));
-
-  const exportarPDF = () => {
-    // Implementar exportação para PDF
-    console.log('Exportar PDF');
-  };
-
-  const exportarCSV = () => {
-    // Implementar exportação para CSV
-    console.log('Exportar CSV');
-  };
-
-  const imprimir = () => {
-    window.print();
-  };
+  }, []);
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">Relatórios</h1>
-          <p className="text-gray-600 mt-1">
-            Análise mensal de orçamentos
-          </p>
-        </div>
-        <div className="space-x-2">
-          <Button onClick={exportarPDF} variant="outline">
-            <FileText className="h-4 w-4 mr-2" />
-            Exportar PDF
-          </Button>
-          <Button onClick={exportarCSV} variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar CSV
-          </Button>
-          <Button onClick={imprimir} variant="outline">
-            <Printer className="h-4 w-4 mr-2" />
-            Imprimir
-          </Button>
-        </div>
-      </div>
+    <div className="p-6 space-y-6">
+      <h1 className="text-2xl font-bold">Relatórios</h1>
 
-      <Card className="overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Período</TableHead>
-              <TableHead>Quantidade</TableHead>
-              <TableHead>Aprovados</TableHead>
-              <TableHead>Recusados</TableHead>
-              <TableHead>Taxa de Aprovação</TableHead>
-              <TableHead className="text-right">Valor Total</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {relatorioMensal.map((relatorio) => (
-              <TableRow key={relatorio.mes}>
-                <TableCell className="font-medium">
-                  {relatorio.mes}
-                </TableCell>
-                <TableCell>{relatorio.quantidade}</TableCell>
-                <TableCell className="text-green-600">
-                  {relatorio.aprovados}
-                </TableCell>
-                <TableCell className="text-red-600">
-                  {relatorio.recusados}
-                </TableCell>
-                <TableCell>
-                  {relatorio.taxaAprovacao}%
-                </TableCell>
-                <TableCell className="text-right">
-                  {new Intl.NumberFormat('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL'
-                  }).format(relatorio.total)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+      <Tabs defaultValue="vendas">
+        <TabsList>
+          <TabsTrigger value="vendas">Vendas</TabsTrigger>
+          <TabsTrigger value="observacoes">Observações</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="vendas">
+          <Card className="p-6">
+            {/* Gráfico de vendas */}
+            <div className="mb-6">
+              <canvas id="vendasChart"></canvas>
+            </div>
+
+            {/* Tabela de vendas */}
+            <div className="overflow-x-auto mb-4">
+              <table className="w-full">
+                <thead>
+                  <tr>
+                    <th className="text-left">Data</th>
+                    <th className="text-left">Cliente</th>
+                    <th className="text-left">Produto</th>
+                    <th className="text-right">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dadosVendas.map((venda, index) => (
+                    <tr key={index} className="border-t">
+                      <td className="py-2">{venda.data}</td>
+                      <td>{venda.cliente}</td>
+                      <td>{venda.produto}</td>
+                      <td className="text-right">R$ {venda.valor.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Botões de exportação */}
+            <div className="flex gap-2">
+              <ExcelExport 
+                data={dadosVendas} 
+                filename="relatorio-vendas.xlsx" 
+                sheetName="Vendas"
+              />
+              <PDFGenerator
+                title="Relatório de Vendas"
+                content={{
+                  text: 'Relatório de vendas do período',
+                  table: {
+                    headers: ['Data', 'Cliente', 'Produto', 'Valor'],
+                    rows: dadosVendas.map(v => [
+                      v.data,
+                      v.cliente,
+                      v.produto,
+                      `R$ ${v.valor.toFixed(2)}`
+                    ])
+                  }
+                }}
+                filename="relatorio-vendas.pdf"
+              />
+            </div>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="observacoes">
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold mb-4">Observações do Relatório</h2>
+            <RichTextEditor
+              initialValue={observacoes}
+              onChange={setObservacoes}
+            />
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

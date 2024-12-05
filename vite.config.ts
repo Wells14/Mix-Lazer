@@ -10,4 +10,37 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    port: 3000,
+    hmr: {
+      overlay: false
+    },
+  },
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      '@radix-ui/react-switch',
+      '@radix-ui/react-label',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-scroll-area',
+      'lucide-react',
+      'zustand'
+    ]
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'ui-vendor': [
+            '@radix-ui/react-switch',
+            '@radix-ui/react-label',
+            '@radix-ui/react-popover'
+          ]
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000
+  }
 })
