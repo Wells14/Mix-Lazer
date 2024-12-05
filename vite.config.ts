@@ -36,11 +36,22 @@ export default defineConfig({
           'ui-vendor': [
             '@radix-ui/react-switch',
             '@radix-ui/react-label',
-            '@radix-ui/react-popover'
+            '@radix-ui/react-popover',
+            '@radix-ui/react-scroll-area',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-progress',
+            '@radix-ui/react-select',
+            '@radix-ui/react-separator',
+            '@radix-ui/react-slot'
           ]
         }
       }
     },
-    chunkSizeWarningLimit: 1000
+    chunkSizeWarningLimit: 1500,
+    outDir: 'dist',
+    emptyOutDir: true,
+    sourcemap: false
   }
 })
