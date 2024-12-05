@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { FilePdf } from 'lucide-react';
+import { FileText } from 'lucide-react';
 
 interface PDFGeneratorProps {
   title: string;
@@ -70,7 +70,7 @@ export function PDFGenerator({
 
   return (
     <Button onClick={generatePDF} variant="outline" size="sm">
-      <FilePdf className="mr-2 h-4 w-4" />
+      <FileText className="mr-2 h-4 w-4" />
       Gerar PDF
     </Button>
   );
