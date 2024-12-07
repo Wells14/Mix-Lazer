@@ -8,58 +8,26 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@components': path.resolve(__dirname, './src/components'),
-      '@lib': path.resolve(__dirname, './src/lib'),
-      '@services': path.resolve(__dirname, './src/services'),
-      '@types': path.resolve(__dirname, './src/types'),
-      '@utils': path.resolve(__dirname, './src/utils'),
-      '@hooks': path.resolve(__dirname, './src/hooks'),
-      '@contexts': path.resolve(__dirname, './src/contexts'),
-      '@assets': path.resolve(__dirname, './src/assets'),
     },
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
-    commonjsOptions: {
-      transformMixedEsModules: true,
-    },
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor': [
-            'react',
-            'react-dom',
-            'react-router-dom',
-          ],
-          'mui': [
-            '@mui/material',
-            '@emotion/react',
-            '@emotion/styled'
-          ],
-          'radix': [
-            '@radix-ui/react-accordion',
-            '@radix-ui/react-alert-dialog',
-            '@radix-ui/react-avatar',
-            '@radix-ui/react-checkbox',
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-label',
-            '@radix-ui/react-menubar',
-            '@radix-ui/react-navigation-menu',
-            '@radix-ui/react-popover',
-            '@radix-ui/react-select',
-            '@radix-ui/react-separator',
-            '@radix-ui/react-slot',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-toast'
-          ]
-        }
-      }
-    }
+          vendor: ['react', 'react-dom'],
+          ui: ['@mui/material', '@mui/icons-material'],
+        },
+      },
+    },
+    sourcemap: false,
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    },
+    chunkSizeWarningLimit: 1600,
   },
   optimizeDeps: {
-    include: ['@emotion/react', '@emotion/styled', '@mui/material'],
+    include: ['react', 'react-dom'],
     esbuildOptions: {
       target: 'es2020'
     }
