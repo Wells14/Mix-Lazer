@@ -1,8 +1,19 @@
 export interface LogCalculo {
-    timestamp: Date;
-    tipo: string;
-    valores: Record<string, number>;
-    resultado: number;
+    data: string;
+    tipo: 'produto' | 'servico';
+    valores: {
+        custos: {
+            materiais: number;
+            acabamento: number;
+            operacional: number;
+            maoDeObra: number;
+            total: number;
+        };
+        margemLucro: number;
+        impostos: number;
+        precoFinal: number;
+        margemContribuicao: number;
+    };
 }
 
 export interface Cliente {
@@ -149,24 +160,21 @@ export interface Comissao {
     valorMaximo?: number;
 }
 
+export interface CacheConfig {
+    prefix: string;
+    ttl: number;
+}
+
 export interface ResultadoCalculo {
-    custoTotal: number;
     custoMateriais: number;
     custoAcabamento: number;
     custoOperacional: number;
     custoMaoDeObra: number;
+    custoTotal: number;
     margemLucro: number;
     impostos: number;
-    comissoes?: number;
-    descontos?: number;
     precoFinal: number;
-    precoSugerido?: number;
     margemContribuicao: number;
-    pontoCritico?: number;
-    lucratividade?: number;
-    rentabilidade?: number;
-    payback?: number;
-    roi?: number;
 }
 
 export interface AnaliseFinanceira {

@@ -1,17 +1,14 @@
 {
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "vite",
   "rewrites": [
     {
       "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "framework": "vite",
-  "github": {
-    "silent": true,
-    "autoAlias": true
-  },
   "headers": [
     {
       "source": "/(.*)",
@@ -39,5 +36,11 @@
         }
       ]
     }
-  ]
+  ],
+  "build": {
+    "env": {
+      "NODE_ENV": "production",
+      "VITE_MODE": "production"
+    }
+  }
 }

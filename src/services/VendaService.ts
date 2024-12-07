@@ -1,6 +1,6 @@
 import { Venda, VendaFiltros, NovaVenda, ItemVenda } from '@/types/venda';
-import { CacheService } from './CacheService';
-import { LogService } from './LogService';
+import { CacheService } from './cacheService';
+import { LogService } from './logService';
 import { ClienteService } from './ClienteService';
 import { ProdutoService } from './ProdutoService';
 import { v4 as uuidv4 } from 'uuid';

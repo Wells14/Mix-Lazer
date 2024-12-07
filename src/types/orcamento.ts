@@ -39,10 +39,8 @@ export interface MargemLucro {
 
 export interface ItemOrcamento {
   id: string;
-  orcamentoId?: string;
   tipo: 'produto' | 'servico';
   nome: string;
-  descricao: string;
   quantidade: number;
   unidade: string;
   largura: number;
@@ -50,37 +48,27 @@ export interface ItemOrcamento {
   custoUnitario: number;
   precoUnitario: number;
   precoTotal: number;
-  custoOperacional?: CustoOperacional[];
-  custoMaterial?: CustoMaterial[];
-  acabamentos?: Acabamento[];
-  margemLucro?: MargemLucro;
+  descricao?: string;
+}
+
+export interface OrcamentosState {
+  itens: ItemOrcamento[];
+  adicionarItemOrcamento: (item: ItemOrcamento) => void;
+  atualizarItemOrcamento: (id: string, item: ItemOrcamento) => void;
+  removerItemOrcamento: (id: string) => void;
 }
 
 export interface Orcamento {
   id: string;
-  numero: string;
-  status: 'rascunho' | 'enviado' | 'aprovado' | 'rejeitado' | 'cancelado';
   data: string;
-  validade: string;
-  cliente: {
-    nome: string;
-    email: string;
-    telefone: string;
-    endereco?: string;
-  }
-  prazoEntrega: string;
-  formaPagamento: string;
-  observacoes?: string;
+  clienteId: string;
   itens: ItemOrcamento[];
   subtotal: number;
-  descontos: number;
-  impostos: number;
+  desconto?: number;
   total: number;
-  custoTotal: number;
-  margemLucroTotal: number;
-  margemContribuicao: number;
-  criadoEm: string;
-  atualizadoEm: string;
-  versao: number;
-  expandido?: boolean;
+  observacoes?: string;
+  status: 'rascunho' | 'enviado' | 'aprovado' | 'rejeitado' | 'cancelado';
+  formaPagamento?: string;
+  prazoEntrega?: string;
+  validadeOrcamento?: string;
 }

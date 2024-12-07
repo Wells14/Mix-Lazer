@@ -6,7 +6,6 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import OrcamentoForm from './pages/OrcamentoForm';
 import AnaliseFinanceira from './pages/AnaliseFinanceira';
-import Configuracoes from './pages/Configuracoes';
 
 const theme = createTheme({
   palette: {
@@ -24,48 +23,6 @@ const theme = createTheme({
   },
   typography: {
     fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-    h1: {
-      fontSize: '2.5rem',
-      fontWeight: 500,
-    },
-    h2: {
-      fontSize: '2rem',
-      fontWeight: 500,
-    },
-    h3: {
-      fontSize: '1.75rem',
-      fontWeight: 500,
-    },
-    h4: {
-      fontSize: '1.5rem',
-      fontWeight: 500,
-    },
-    h5: {
-      fontSize: '1.25rem',
-      fontWeight: 500,
-    },
-    h6: {
-      fontSize: '1rem',
-      fontWeight: 500,
-    },
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          textTransform: 'none',
-          borderRadius: 8,
-        },
-      },
-    },
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          borderRadius: 12,
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-        },
-      },
-    },
   },
 });
 
@@ -79,7 +36,6 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/orcamento" element={<OrcamentoForm />} />
             <Route path="/analise" element={<AnaliseFinanceira />} />
-            <Route path="/configuracoes" element={<Configuracoes />} />
           </Routes>
         </Layout>
       </Router>

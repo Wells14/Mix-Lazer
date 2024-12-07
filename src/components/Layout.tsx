@@ -12,14 +12,12 @@ import {
   ListItemText,
   Toolbar,
   Typography,
-  useTheme,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
   Calculate as CalculateIcon,
   Analytics as AnalyticsIcon,
-  Settings as SettingsIcon,
 } from '@mui/icons-material';
 
 const drawerWidth = 240;
@@ -30,13 +28,11 @@ interface LayoutProps {
 
 const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-  { text: 'Novo Orçamento', icon: <CalculateIcon />, path: '/orcamento' },
-  { text: 'Análise Financeira', icon: <AnalyticsIcon />, path: '/analise' },
-  { text: 'Configurações', icon: <SettingsIcon />, path: '/configuracoes' },
+  { text: 'Orçamentos', icon: <CalculateIcon />, path: '/orcamento' },
+  { text: 'Análise', icon: <AnalyticsIcon />, path: '/analise' },
 ];
 
 export default function Layout({ children }: LayoutProps) {
-  const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -46,12 +42,8 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   const drawer = (
-    <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div">
-          CalcMe
-        </Typography>
-      </Toolbar>
+    <Box>
+      <Toolbar />
       <List>
         {menuItems.map((item) => (
           <ListItem
@@ -59,32 +51,13 @@ export default function Layout({ children }: LayoutProps) {
             key={item.text}
             onClick={() => navigate(item.path)}
             selected={location.pathname === item.path}
-            sx={{
-              '&.Mui-selected': {
-                backgroundColor: theme.palette.primary.main + '20',
-                '&:hover': {
-                  backgroundColor: theme.palette.primary.main + '30',
-                },
-              },
-            }}
           >
-            <ListItemIcon
-              sx={{
-                color: location.pathname === item.path ? theme.palette.primary.main : 'inherit',
-              }}
-            >
-              {item.icon}
-            </ListItemIcon>
-            <ListItemText
-              primary={item.text}
-              sx={{
-                color: location.pathname === item.path ? theme.palette.primary.main : 'inherit',
-              }}
-            />
+            <ListItemIcon>{item.icon}</ListItemIcon>
+            <ListItemText primary={item.text} />
           </ListItem>
         ))}
       </List>
-    </div>
+    </Box>
   );
 
   return (
@@ -108,14 +81,13 @@ export default function Layout({ children }: LayoutProps) {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div">
-            {menuItems.find((item) => item.path === location.pathname)?.text || 'CalcMe'}
+            Mix Laser Dashboard
           </Typography>
         </Toolbar>
       </AppBar>
       <Box
         component="nav"
         sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-        aria-label="mailbox folders"
       >
         <Drawer
           variant="temporary"
@@ -148,11 +120,9 @@ export default function Layout({ children }: LayoutProps) {
           flexGrow: 1,
           p: 3,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
-          backgroundColor: theme.palette.background.default,
-          minHeight: '100vh',
+          mt: ['56px', '64px'],
         }}
       >
-        <Toolbar />
         {children}
       </Box>
     </Box>

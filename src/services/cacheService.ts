@@ -1,49 +1,52 @@
+import { CacheConfig } from '../types/calculos';
+
+export interface CacheConfig {
+  maxSize?: number;
+  prefix: string;
+}
+
 export class CacheService {
-    private static cache = new Map<string, {
-        value: number;
-        timestamp: number;
-        expiresIn: number;
-    }>();
+  private static cache = new Map<string, any>();
+  private static config: CacheConfig = {
+    maxSize: 1000,
+    prefix: 'cache_'
+  };
 
-    private static readonly DEFAULT_EXPIRATION = 1000 * 60 * 5; // 5 minutos
+  static generateKey(key: string): string {
+    return `${this.config.prefix}${key}`;
+  }
 
-    static getCached(key: string): number | undefined {
-        const cached = this.cache.get(key);
-        
-        if (!cached) {
-            return undefined;
-        }
+  static setCached<T>(key: string, value: T): void {
+    const cacheKey = this.generateKey(key);
+    this.cache.set(cacheKey, value);
 
-        if (Date.now() > cached.timestamp + cached.expiresIn) {
-            this.cache.delete(key);
-            return undefined;
-        }
-
-        return cached.value;
+    // Limitar tamanho do cache
+    if (this.config.maxSize && this.cache.size > this.config.maxSize) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
     }
+  }
 
-    static setCached(key: string, value: number, expiresIn: number = this.DEFAULT_EXPIRATION): void {
-        this.cache.set(key, {
-            value,
-            timestamp: Date.now(),
-            expiresIn
-        });
-    }
+  static getCached<T>(key: string): T | null {
+    const cacheKey = this.generateKey(key);
+    return this.cache.get(cacheKey) || null;
+  }
 
-    static clearCache(): void {
-        this.cache.clear();
-    }
+  static removeCached(key: string): void {
+    const cacheKey = this.generateKey(key);
+    this.cache.delete(cacheKey);
+  }
 
-    static removeExpired(): void {
-        const now = Date.now();
-        for (const [key, cached] of this.cache.entries()) {
-            if (now > cached.timestamp + cached.expiresIn) {
-                this.cache.delete(key);
-            }
-        }
+  static getAllWithPrefix<T>(prefix: string): T[] {
+    const results: T[] = [];
+    const searchPrefix = this.generateKey(prefix);
+    
+    for (const [key, value] of this.cache.entries()) {
+      if (key.startsWith(searchPrefix)) {
+        results.push(value);
+      }
     }
-
-    static generateKey(method: string, params: Record<string, any>): string {
-        return `${method}:${JSON.stringify(params)}`;
-    }
+    
+    return results;
+  }
 }
